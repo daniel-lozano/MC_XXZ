@@ -5,17 +5,17 @@
 #include <string.h>
 using namespace std;
 
-void gen_Bonds(int** Bonds, int L, int M);
-int get_sum_Bonds(int** Bonds, int L, int M);
 
 void sweep(int* Spins, int** neighbours,double T, int N_spins  );
 double get_Energy(int* Spins, int** neighbours, int N  );
 double get_magnetization(int* Spins, int N);
 double random_double();
+double F(int* Spins,int** neighbours, int i,int j,double Temp);
 
 
 
 #define J 1.
+#define Jperp 0.001
 #define KB 1.
 #define Z 4
 
@@ -95,11 +95,16 @@ int main(int argc, char** argv){
     for(int i=0;i<N_spins;i++){
         Spins[i]=2*(rand()%2)-1;
        
-//        cout<< Spins[i] << " ";
+        cout<< Spins[i] << " ";
+        if((i+1)%10==0){
+            cout<<endl;
+        }
 
     }
-//    cout<<endl;
-  
+    cout<<endl;
+    
+    cout<<"F["<< 5 <<"," <<15<<"]" <<endl;
+    cout<<F(Spins,neighbours, 5,15,1)<<endl;
     
     double mean_E=0;
     double mean_E2=0;
@@ -157,27 +162,30 @@ int main(int argc, char** argv){
 ////////////////////////FUNCTIONS OF THE SYSTEM ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void gen_Bonds(int** Bonds, int L, int M){
-    /// Generating Random bond Matrix ///
-    for(int i=0; i<M; i++){
-        for(int j=0; j<L; j++){
-            Bonds[i][j]=1;//2*(rand()%2)-1;
-//            cout<<" " << Bonds[i][j]<< " ";
-        }
-//        cout << endl;
+double F(int* Spins,int** neighbours, int i,int j,double Temp){
+    double sum=-2*Spins[i]*Spins[j];
+    double Neig_i=0;
+    double Neig_j=0;
+    cout<<"Sum before="<< sum<<endl;
+    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
+    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
+    for(int k=0;k<Z;k++){
+        Neig_i+=Spins[neighbours[i][k]];
+        Neig_j+=Spins[neighbours[j][k]];
+//        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
     }
+    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
+    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
+    sum+=(Spins[i]*Neig_j+Spins[j]*Neig_i);
+//    sum*=2*J/Temp;
     
-}
-
-int get_sum_Bonds(int** Bonds, int L, int M){
-    int sum=0;
-    for(int i=0; i<M; i++){
-        for(int j=0; j<L; j++){
-            sum+=Bonds[i][j];
-            
-            }
-        }
-    return sum;
+    if(sum==0){
+        cout<<"sum=0!!!"<<endl;
+        return 0.5;
+    }
+    return (exp(sum)-1-sum)/pow(sum,2);
+    
+    
 }
 
 double get_Energy(int* Spins, int** neighbours,  int N ){
