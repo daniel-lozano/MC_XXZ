@@ -102,9 +102,10 @@ int main(int argc, char** argv){
 
     }
     cout<<endl;
-    
-    cout<<"F["<< 5 <<"," <<15<<"]" <<endl;
-    cout<<F(Spins,neighbours, 5,15,1)<<endl;
+    int pos1=5;
+    int pos2=neighbours[pos1][0];
+    cout<<"F["<< pos1 <<"," <<pos2<<"]" <<endl;
+    cout<<F(Spins,neighbours, pos1,pos2,1)<<endl;
     
     double mean_E=0;
     double mean_E2=0;
@@ -114,7 +115,7 @@ int main(int argc, char** argv){
     
     /// Loop over the temperatures ///
     for(int n_t=0; n_t<N_temps;n_t++){
-//        break;
+        break;
         
         double T=Temp[n_t];
         
@@ -177,7 +178,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp){
     cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
     cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
     sum+=(Spins[i]*Neig_j+Spins[j]*Neig_i);
-//    sum*=2*J/Temp;
+    sum*=-2*J/Temp;
     
     if(sum==0){
         cout<<"sum=0!!!"<<endl;
@@ -196,10 +197,10 @@ double get_Energy(int* Spins, int** neighbours,  int N ){
     for(int i=0; i<N; i++){
         /// Loop over neighbours ///
         for(int j=0;j<Z; j++ ){
-            E-=J*Spins[i]*Spins[neighbours[i][j]];
+            E-=J*Spins[i]*Spins[neighbours[i][j]];//-2*(pow(Jperp,2)/T)*(1-Spins[i]*Spins[neighbours[i][j]])*F(Spins, neighbours,  i, j,Temp)
         }
     }
-    return E/2.;
+    return E/2.;// It is still symmetric!!!
 
 }
 void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
