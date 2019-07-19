@@ -7,10 +7,10 @@ using namespace std;
 
 
 void sweep(int* Spins, int** neighbours,double T, int N_spins  );
-double get_Energy(int* Spins, int** neighbours, int N  );
+double get_Energy(int* Spins, int** neighbours, int N , double Temp );
 double get_magnetization(int* Spins, int N);
 double random_double();
-double F(int* Spins,int** neighbours, int i,int j,double Temp);
+double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
 
 
 
@@ -95,18 +95,18 @@ int main(int argc, char** argv){
     for(int i=0;i<N_spins;i++){
         Spins[i]=2*(rand()%2)-1;
        
-        cout<< Spins[i] << " ";
-        if((i+1)%10==0){
-            cout<<endl;
-        }
+//        cout<< Spins[i] << " ";
+//        if((i+1)%10==0){
+//            cout<<endl;
+//        }
 
     }
-    cout<<endl;
-    int pos1=5;
-    int pos2=neighbours[pos1][0];
-    cout<<"F["<< pos1 <<"," <<pos2<<"]" <<endl;
-    cout<<F(Spins,neighbours, pos1,pos2,1)<<endl;
-    
+//    cout<<endl;
+//    int pos1=5;
+//    int pos2=neighbours[pos1][0];
+//    cout<<"F["<< pos1 <<"," <<pos2<<"]" <<endl;
+//    cout<<F(Spins,neighbours, pos1,pos2,1,-1)<<endl;
+//
     double mean_E=0;
     double mean_E2=0;
     double mean_M=0;
@@ -115,7 +115,7 @@ int main(int argc, char** argv){
     
     /// Loop over the temperatures ///
     for(int n_t=0; n_t<N_temps;n_t++){
-        break;
+//        break;
         
         double T=Temp[n_t];
         
@@ -136,7 +136,7 @@ int main(int argc, char** argv){
             
             if(n_eq>n_eqSweeps){
 
-                E=get_Energy(Spins, neighbours,N_spins);
+                E=get_Energy(Spins, neighbours,N_spins,T);
 
                 mean_E+=E/(n_measSweeps);
                 mean_M+=get_magnetization(Spins, N_spins)/(N_spins*(n_measSweeps));
@@ -156,6 +156,16 @@ int main(int argc, char** argv){
     }
     File_E_M.close();
 
+    
+    
+    
+    for(int i=0;i<N_spins;i++){
+        cout<< Spins[i] << " ";
+        if((i+1)%10==0){
+            cout<<endl;
+        }
+        
+    }
     return 0;
 }
 
@@ -163,25 +173,25 @@ int main(int argc, char** argv){
 ////////////////////////FUNCTIONS OF THE SYSTEM ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-double F(int* Spins,int** neighbours, int i,int j,double Temp){
-    double sum=-2*Spins[i]*Spins[j];
+double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
+    double sum=-2*(sign*Spins[i])*Spins[j];
     double Neig_i=0;
     double Neig_j=0;
-    cout<<"Sum before="<< sum<<endl;
-    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
-    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
+//    cout<<"Sum before="<< sum<<endl;
+//    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
+//    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
     for(int k=0;k<Z;k++){
         Neig_i+=Spins[neighbours[i][k]];
         Neig_j+=Spins[neighbours[j][k]];
 //        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
     }
-    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
-    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
-    sum+=(Spins[i]*Neig_j+Spins[j]*Neig_i);
-    sum*=-2*J/Temp;
+//    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
+//    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
+    sum+=(sign*Spins[i]*Neig_j+Spins[j]*Neig_i);
+    sum*=-2*J/(Temp*KB);
     
     if(sum==0){
-        cout<<"sum=0!!!"<<endl;
+//        cout<<"sum=0!!!"<<endl;
         return 0.5;
     }
     return (exp(sum)-1-sum)/pow(sum,2);
@@ -189,7 +199,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp){
     
 }
 
-double get_Energy(int* Spins, int** neighbours,  int N ){
+double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
     /// Energy variable to be computed ///
     double E=0;
     
@@ -197,7 +207,9 @@ double get_Energy(int* Spins, int** neighbours,  int N ){
     for(int i=0; i<N; i++){
         /// Loop over neighbours ///
         for(int j=0;j<Z; j++ ){
-            E-=J*Spins[i]*Spins[neighbours[i][j]];//-2*(pow(Jperp,2)/T)*(1-Spins[i]*Spins[neighbours[i][j]])*F(Spins, neighbours,  i, j,Temp)
+//            E-=J*Spins[i]*Spins[neighbours[i][j]];
+            
+            E+=J*Spins[i]*Spins[neighbours[i][j]]-2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*F(Spins, neighbours,  i, j,Temp,+1);
         }
     }
     return E/2.;// It is still symmetric!!!
@@ -217,7 +229,8 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
         DE=0;
         
         for(int j=0; j<Z;j++){
-            DE+=2*J*Spins[site]*Spins[neighbours[site][j]];
+            DE-= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
+            DE-= 2*(pow(Jperp,2)/(T*KB))*(1+Spins[site]*Spins[neighbours[site][j]])*(F(Spins, neighbours,  site, j,T,-1)- F(Spins, neighbours,  site, j,T,+1));
         }
         /// Defining probability
         prob=exp(-DE/(KB*T));
