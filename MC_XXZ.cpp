@@ -9,6 +9,9 @@ using namespace std;
 void sweep(int* Spins, int** neighbours,double T, int N_spins  );
 double get_Energy(int* Spins, int** neighbours, int N , double Temp );
 double get_magnetization(int* Spins, int N);
+
+double get_magnetization_A(int* Spins, int N);
+
 double random_double();
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
 
@@ -37,7 +40,9 @@ int main(int argc, char** argv){
     int n_measSweeps=5000;
   
     cout << "The size of the lattice is "<< SQU << endl;
-    
+    cout << "The number of equillibrium sweeps= "<< n_eqSweeps<<endl;
+    cout << "The number of measureing sweeps= "<< n_measSweeps<<endl;
+
     
     /// Changin seed to a time dependend seed ///
     srand(time(NULL));
@@ -80,13 +85,13 @@ int main(int argc, char** argv){
         Temp[i]=T_max-i*(T_max-T_min)/N_temps;
     }
     /// Files to be use ///
-    ofstream File_E_M;
+    ofstream File_E_M, File_Magn;
     
     File_E_M.open("Energy_magnetization_L"+ to_string(L)+".txt");
+    File_Magn.open("Magnetization_L"+ to_string(L)+".txt");
   
  
     /// Starting with a fix spin configuration ///
-//    cout<< "Fealing spin configurations "<< t << endl;
     
     /// Random Spin configurations ////
     int* Spins=new int[N_spins];
@@ -107,9 +112,10 @@ int main(int argc, char** argv){
 //    cout<<"F["<< pos1 <<"," <<pos2<<"]" <<endl;
 //    cout<<F(Spins,neighbours, pos1,pos2,1,-1)<<endl;
 //
-    double mean_E=0;
-    double mean_E2=0;
-    double mean_M=0;
+    double mean_E;
+    double mean_E2;
+    double mean_M;
+    double mean_MA;
     double E,Cv,prob,r;
 
     
@@ -126,45 +132,45 @@ int main(int argc, char** argv){
         mean_E=0;
         mean_E2=0;
         mean_M=0;
+        mean_MA=0;
         
         /// Loop over equillibrium and measure sweeps ///
-        for(int n_eq=0; n_eq<n_eqSweeps+n_measSweeps;n_eq++){
-
+        for(int n_eq=0; n_eq<n_eqSweeps;n_eq++){
             sweep(Spins, neighbours,T,N_spins );
-            
-            /// Measuring after equilibrating the system ///
-            
-            if(n_eq>n_eqSweeps){
+        }
+        
+        /// Measuring after equilibrating the system ///
 
-                E=get_Energy(Spins, neighbours,N_spins,T);
-
-                mean_E+=E/(n_measSweeps);
-                mean_M+=get_magnetization(Spins, N_spins)/(N_spins*(n_measSweeps));
-                mean_E2+=pow(E,2)/(n_measSweeps);
+            for(int n_eq=0; n_eq<n_measSweeps;n_eq++){
                 
-                /// Saving configurations ///
-               
-
-            }
+                sweep(Spins, neighbours,T,N_spins );
+                
+                /// Measuring after equilibrating the system ///
+   
+                E=get_Energy(Spins, neighbours,N_spins,T);
+                
+                mean_E  +=E/(n_measSweeps);
+                mean_E2 +=pow(E,2)/(n_measSweeps);
+                
+                mean_M  +=get_magnetization(Spins, N_spins)/(N_spins*(n_measSweeps));
+                mean_MA +=get_magnetization_A(Spins, N_spins)/(N_spins*(n_measSweeps));
 
         }
 
      Cv=( mean_E2-pow(mean_E,2))/(N_spins*pow(T,2));
 
      File_E_M << T << " " << mean_E/N_spins << " "<< mean_M << " "<< Cv << endl;
-
+     File_Magn << T << " " << mean_M << " " << mean_MA << endl;
     }
     File_E_M.close();
 
-    
-    
     
     for(int i=0;i<N_spins;i++){
         cout<< Spins[i] << " ";
         if((i+1)%10==0){
             cout<<endl;
         }
-        
+
     }
     return 0;
 }
@@ -207,9 +213,12 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
     for(int i=0; i<N; i++){
         /// Loop over neighbours ///
         for(int j=0;j<Z; j++ ){
-//            E-=J*Spins[i]*Spins[neighbours[i][j]];
             
-            E+=J*Spins[i]*Spins[neighbours[i][j]]-2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*F(Spins, neighbours,  i, j,Temp,+1);
+            E+=J*Spins[i]*Spins[neighbours[i][j]];
+            
+            if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
+                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*F(Spins, neighbours,  i, j,Temp,+1);
+            }// Get the energy only if the term contributes
         }
     }
     return E/2.;// It is still symmetric!!!
@@ -230,7 +239,11 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
         
         for(int j=0; j<Z;j++){
             DE-= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
-            DE-= 2*(pow(Jperp,2)/(T*KB))*(1+Spins[site]*Spins[neighbours[site][j]])*(F(Spins, neighbours,  site, j,T,-1)- F(Spins, neighbours,  site, j,T,+1));
+            
+            if(Jperp!=0){
+                DE-= 2*(pow(Jperp,2)/(T*KB))*(1+Spins[site]*Spins[neighbours[site][j]])*(F(Spins, neighbours,  site, j,T,-1) - F(Spins, neighbours,  site, j,T,+1));
+                
+            }
         }
         /// Defining probability
         prob=exp(-DE/(KB*T));
@@ -248,6 +261,15 @@ double get_magnetization(int* Spins, int N){
     double M=0;
     for(int i=0; i<N; i++){
         M+=Spins[i];
+    }
+    return M;
+    
+}
+double get_magnetization_A(int* Spins, int N){
+    
+    double M=0;
+    for(int i=0; i<N; i++){
+        if(i%2==0){M+=Spins[i];}
     }
     return M;
     
