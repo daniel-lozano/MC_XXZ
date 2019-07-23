@@ -15,11 +15,12 @@ double get_magnetization_B(int* Spins, int N);
 
 double random_double();
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
+double G(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
 
 
-#define J -1.
-#define Jperp 0.00
+#define J 1.
+#define Jperp 0.001
 #define KB 1.
 #define Z 4
 
@@ -37,8 +38,8 @@ int main(int argc, char** argv){
     
     double Tc=2.0/log(1+sqrt(2))*J; //
     
-    int n_eqSweeps=20000;
-    int n_measSweeps=20000;
+    int n_eqSweeps=1000;
+    int n_measSweeps=3000;
   
     cout << "The size of the lattice is "<< SQU << endl;
     cout << "The number of equillibrium sweeps= "<< n_eqSweeps<<endl;
@@ -210,6 +211,7 @@ int main(int argc, char** argv){
 
 double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     double sum=-2*(sign*Spins[i])*Spins[j];
+    
     double Neig_i=0;
     double Neig_j=0;
 //    cout<<"Sum before="<< sum<<endl;
@@ -227,7 +229,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     }
 //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
 //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
-    sum+=(sign*Spins[i]*Neig_j+Spins[j]*Neig_i);
+    sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
     sum*=-2*J/(Temp*KB);
     
     if(sum==0){
@@ -238,6 +240,41 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
     
 }
+
+double G(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
+    double sum=-2*(sign*Spins[i])*Spins[j];
+    
+    double Neig_i=0;
+    double Neig_j=0;
+    //    cout<<"Sum before="<< sum<<endl;
+    //    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
+    //    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
+    for(int k=0;k<Z;k++){
+        Neig_i+=Spins[neighbours[i][k]];
+        Neig_j+=Spins[neighbours[j][k]];
+        
+        if(sign==-1){// If the sign is used then the i-th sign must be added separatelly
+            Neig_j-=2*Spins[neighbours[j][k]];
+            
+        }
+        //        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
+    }
+    //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
+    //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
+    sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
+    sum*=-2*J/(Temp*KB);
+    
+    if(sum==0){
+        //Using the Taylor expansion
+        return 0;
+    }
+    return (exp(sum)*(sum-2)+sum+2)/pow(sum,2);;//sum*(exp(sum)*(sum-2)+sum+2)/pow(sum,3);
+    
+    
+}
+
+
+
 
 double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
     /// Energy variable to be computed ///
@@ -251,7 +288,7 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             E+=J*Spins[i]*Spins[neighbours[i][j]];
             
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*F(Spins, neighbours,  i, j,Temp,+1);
+                E+=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(G(Spins, neighbours,  i, j,Temp,+1)-2*F(Spins, neighbours,  i, j,Temp,+1));
             }// Get the energy only if the term contributes
         }
     }
@@ -262,6 +299,10 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
     int site;
     double DE;
     double prob,r;
+    double F_pi_j;
+    double F_ni_j;
+    double G_pi_j;
+    double G_ni_j;
     
     
     for(int N=0; N<N_spins; N++){
@@ -274,8 +315,14 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
         for(int j=0; j<Z;j++){
             DE-= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
             
-            if(Jperp!=0 && Spins[site]==Spins[neighbours[site][j]] ){
-                DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(F(Spins, neighbours,  site, j,T,-1) + F(Spins, neighbours,  site, j,T,+1));
+            if(Jperp!=0){
+                F_pi_j=F(Spins, neighbours,  site, j,T,+1);
+                F_ni_j=F(Spins, neighbours,  site, j,T,-1);
+                G_pi_j=G(Spins, neighbours,  site, j,T,+1);
+                G_ni_j=F(Spins, neighbours,  site, j,T,-1);
+                
+                DE += 2*(pow(Jperp,2)/(T*KB))*(G_ni_j-2*F_ni_j-G_pi_j+2*F_pi_j);
+                DE += 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(G_ni_j-2*F_ni_j+G_pi_j-2*F_pi_j);
                 
             }
         }
