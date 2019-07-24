@@ -8,19 +8,21 @@ using namespace std;
 
 void sweep(int* Spins, int** neighbours,double T, int N_spins  );
 double get_Energy(int* Spins, int** neighbours, int N , double Temp );
+double get_Cv_correction(int* Spins, int** neighbours, int N , double Temp );
 double get_magnetization(int* Spins, int N);
 
 double get_magnetization_A(int* Spins, int N);
 double get_magnetization_B(int* Spins, int N);
 
 double random_double();
+double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
-double G(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
+double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
 
 
-#define J 1.
-#define Jperp 0.001
+#define J 1. // Positive for AFM interactions
+#define Jperp 0.01
 #define KB 1.
 #define Z 4
 
@@ -38,8 +40,8 @@ int main(int argc, char** argv){
     
     double Tc=2.0/log(1+sqrt(2))*J; //
     
-    int n_eqSweeps=1000;
-    int n_measSweeps=3000;
+    int n_eqSweeps=2000;
+    int n_measSweeps=4000;
   
     cout << "The size of the lattice is "<< SQU << endl;
     cout << "The number of equillibrium sweeps= "<< n_eqSweeps<<endl;
@@ -80,7 +82,7 @@ int main(int argc, char** argv){
     
     int N_temps=50;
     double T_max=4;
-    double T_min=1;
+    double T_min=1.5;
     double dt=(log(T_max/T_min))/N_temps;
     double* Temp=new double[N_temps];
     
@@ -123,6 +125,7 @@ int main(int argc, char** argv){
 //
     double mean_E;
     double mean_E2;
+    double mean_Cv;
     double mean_M;
     double mean_M2;
     double mean_M4;
@@ -139,7 +142,7 @@ int main(int argc, char** argv){
         double T=Temp[n_t];
         
         /// PRINTING CURRENT TEMPERATURE MOD 10 ///
-        if(n_t%10==0){cout << "Temperature = "<< T<< endl;}
+        if(n_t%5==0){cout << "Temperature = "<< T<< endl;}
         
         ///VARIABLES FOR THE AVERAGES///
         mean_E=0;
@@ -169,17 +172,19 @@ int main(int argc, char** argv){
                 
                 mean_E  +=E/(n_measSweeps);
                 mean_E2 +=pow(E,2)/(n_measSweeps);
+                mean_Cv += get_Cv_correction(Spins, neighbours,N_spins,T)/(n_measSweeps);
                 
                 mean_M  +=get_magnetization(Spins, N_spins)/(n_measSweeps);
                 mean_M2 +=pow(mean_M*n_measSweeps/N_spins,2)/(n_measSweeps);
                 mean_M4 +=pow(mean_M*n_measSweeps/N_spins,4)/(n_measSweeps);
                 
+                //Bipartite lattice magnetization
                 mean_MA +=get_magnetization_A(Spins, N_spins)/(n_measSweeps);
                 mean_MB +=get_magnetization_B(Spins, N_spins)/(n_measSweeps);
 
         }
-
-     Cv=( mean_E2-pow(mean_E,2))/(N_spins*pow(T,2));
+     // This function needs a correction due to the temperature dependence of the effectiva Hamiltonian
+     Cv=( mean_E2-pow(mean_E,2))/(N_spins*pow(T,2))+ mean_Cv/(N_spins*pow(T,2));
 
      File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
         
@@ -208,6 +213,34 @@ int main(int argc, char** argv){
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////FUNCTIONS OF THE SYSTEM ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
+    double sum=-2*(sign*Spins[i])*Spins[j];
+    
+    double Neig_i=0;
+    double Neig_j=0;
+    //    cout<<"Sum before="<< sum<<endl;
+    //    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
+    //    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
+    for(int k=0;k<Z;k++){
+        Neig_i+=Spins[neighbours[i][k]];
+        Neig_j+=Spins[neighbours[j][k]];
+        
+        if(sign==-1){// If the sign is used then the ith sign must be added separatelly
+            Neig_j-=2*Spins[neighbours[j][k]];
+            
+        }
+        //        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
+    }
+    //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
+    //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
+    sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
+    sum*=-2*J/(Temp*KB);
+    
+    return sum;
+    
+    
+}
 
 double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     double sum=-2*(sign*Spins[i])*Spins[j];
@@ -241,7 +274,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
 }
 
-double G(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
+double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     double sum=-2*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
@@ -257,23 +290,19 @@ double G(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
             Neig_j-=2*Spins[neighbours[j][k]];
             
         }
-        //        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
     }
-    //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
-    //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
+
     sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
     sum*=-2*J/(Temp*KB);
     
     if(sum==0){
         //Using the Taylor expansion
-        return 0;
+        return 1;
     }
-    return (exp(sum)*(sum-2)+sum+2)/pow(sum,2);;//sum*(exp(sum)*(sum-2)+sum+2)/pow(sum,3);
+    return (exp(sum)-1)/sum;
     
     
 }
-
-
 
 
 double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
@@ -288,21 +317,42 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             E+=J*Spins[i]*Spins[neighbours[i][j]];
             
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                E+=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(G(Spins, neighbours,  i, j,Temp,+1)-2*F(Spins, neighbours,  i, j,Temp,+1));
+//                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(H(Spins, neighbours,  i, j,Temp,+1));
+                E-=4*(pow(Jperp,2)/(Temp*KB))*(H(Spins, neighbours,  i, j,Temp,+1));
             }// Get the energy only if the term contributes
         }
     }
     return E/2.;// It is still symmetric!!!
 
 }
+
+double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp ){
+    /// Energy variable to be computed ///
+    double Cv=0;
+    
+    /// Loop over sites ///
+    for(int i=0; i<N; i++){
+        /// Loop over neighbours ///
+        for(int j=0;j<Z; j++ ){
+            
+            
+            if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
+                Cv+=2*pow(Jperp,2)*(1-Spins[i]*Spins[neighbours[i][j]])*exp(X(Spins, neighbours,  i, j,Temp,+1));
+                
+            }// Get the energy only if the term contributes
+        }
+    }
+    return Cv/2.;// It is still symmetric!!!
+    
+}
+
 void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
     int site;
     double DE;
     double prob,r;
-    double F_pi_j;
-    double F_ni_j;
-    double G_pi_j;
-    double G_ni_j;
+    double H_pi_j;
+    double H_ni_j;
+    
     
     
     for(int N=0; N<N_spins; N++){
@@ -316,13 +366,11 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
             DE-= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
             
             if(Jperp!=0){
-                F_pi_j=F(Spins, neighbours,  site, j,T,+1);
-                F_ni_j=F(Spins, neighbours,  site, j,T,-1);
-                G_pi_j=G(Spins, neighbours,  site, j,T,+1);
-                G_ni_j=F(Spins, neighbours,  site, j,T,-1);
+                H_pi_j=F(Spins, neighbours,  site, j,T,+1);
+                H_ni_j=F(Spins, neighbours,  site, j,T,-1);
                 
-                DE += 2*(pow(Jperp,2)/(T*KB))*(G_ni_j-2*F_ni_j-G_pi_j+2*F_pi_j);
-                DE += 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(G_ni_j-2*F_ni_j+G_pi_j-2*F_pi_j);
+                DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
+                DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
                 
             }
         }
