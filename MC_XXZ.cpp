@@ -22,7 +22,7 @@ double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
 
 #define J 1. // Positive for AFM interactions
-#define Jperp 0.01
+#define Jperp 0.00
 #define KB 1.
 #define Z 4
 
@@ -41,7 +41,7 @@ int main(int argc, char** argv){
     double Tc=2.0/log(1+sqrt(2))*J; //
     
     int n_eqSweeps=2000;
-    int n_measSweeps=4000;
+    int n_measSweeps=7000;
   
     cout << "The size of the lattice is "<< SQU << endl;
     cout << "The number of equillibrium sweeps= "<< n_eqSweeps<<endl;
@@ -49,7 +49,6 @@ int main(int argc, char** argv){
 
     
     /// Changin seed to a time dependend seed ///
-    srand(time(NULL));
     
     cout << "N_spins=" << N_spins << endl;
     cout << "N_bonds=" << 2*L*L << endl;
@@ -82,7 +81,7 @@ int main(int argc, char** argv){
     
     int N_temps=50;
     double T_max=4;
-    double T_min=1.5;
+    double T_min=1.;
     double dt=(log(T_max/T_min))/N_temps;
     double* Temp=new double[N_temps];
     
@@ -107,7 +106,8 @@ int main(int argc, char** argv){
     /// Random Spin configurations ////
     int* Spins=new int[N_spins];
     
-    
+    srand(time(NULL));
+
     for(int i=0;i<N_spins;i++){
         Spins[i]=2*(rand()%2)-1;
        
@@ -319,7 +319,7 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
 //                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(H(Spins, neighbours,  i, j,Temp,+1));
                 E-=4*(pow(Jperp,2)/(Temp*KB))*(H(Spins, neighbours,  i, j,Temp,+1));
-            }// Get the energy only if the term contributes
+            }// Get the energy only if the term contributes, i.e., if the interaction is AFM
         }
     }
     return E/2.;// It is still symmetric!!!
@@ -327,6 +327,7 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
 }
 
 double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp ){
+    
     /// Energy variable to be computed ///
     double Cv=0;
     
@@ -342,7 +343,7 @@ double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp ){
             }// Get the energy only if the term contributes
         }
     }
-    return Cv/2.;// It is still symmetric!!!
+    return Cv/2.;// divide by two due to overcounting
     
 }
 
@@ -353,8 +354,6 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
     double H_pi_j;
     double H_ni_j;
     
-    
-    
     for(int N=0; N<N_spins; N++){
         /// site to be flipped ///
         site=(rand()%N_spins);
@@ -363,11 +362,11 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
         DE=0;
         
         for(int j=0; j<Z;j++){
-            DE-= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
+            DE -= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
             
             if(Jperp!=0){
-                H_pi_j=F(Spins, neighbours,  site, j,T,+1);
-                H_ni_j=F(Spins, neighbours,  site, j,T,-1);
+                H_pi_j=H(Spins, neighbours,  site, j,T,+1);
+                H_ni_j=H(Spins, neighbours,  site, j,T,-1);
                 
                 DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
                 DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
