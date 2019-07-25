@@ -4,7 +4,8 @@ from sys import  argv
 
 size=argv[1]#input("Enter the size of the lattice=")
 FILE=np.loadtxt("Energy_magnetization_L"+size+".txt")
-FILE_O=np.loadtxt("Energy_magnetization_L"+str(30)+"_no_Jperp.txt")
+N=50
+FILE_O=np.loadtxt("Energy_magnetization_L"+str(N)+"_no_Jperp.txt")
 
 print(FILE.shape)
 
@@ -26,13 +27,13 @@ print(T[np.argmax(Cv)])
 plt.figure(figsize=(10,7))
 plt.subplot(311)
 plt.plot(T,E,"^-",label=size+"$\\times $"+size)
-plt.plot(T_O,E_O,"o-",label="$ 30\\times 30\ J_\perp=0 $")
+plt.plot(T_O,E_O,"o-",label=str(N)+"$\\times $"+str(N)+"$\ J_\perp=0 $")
 plt.ylabel("$ Energy $")
 plt.legend()
 plt.ylim(-2.5,0.0)
 plt.subplot(312)
 plt.plot(T,M,"^-",label=size+"$\\times $"+size)
-plt.plot(T_O,M_O,"o-",label="$ 30\\times 30\ J_\perp=0 $")
+plt.plot(T_O,M_O,"o-",label=str(N)+"$\\times $"+str(N)+"$\ J_\perp=0 $")
 plt.ylabel(" $ Magnetization $")
 plt.legend()
 
