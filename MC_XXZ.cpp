@@ -22,7 +22,7 @@ double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
 
 #define J 1. // Positive for AFM interactions
-#define Jperp 0.00
+#define Jperp 0.02
 #define KB 1.
 #define Z 4
 
@@ -51,7 +51,6 @@ int main(int argc, char** argv){
     /// Changin seed to a time dependend seed ///
     
     cout << "N_spins=" << N_spins << endl;
-    cout << "N_bonds=" << 2*L*L << endl;
     
     ////------------------------------------------------------------------
     ///----------------- Creating array of neighbours ---------------- ///
@@ -81,7 +80,7 @@ int main(int argc, char** argv){
     
     int N_temps=50;
     double T_max=4;
-    double T_min=1.;
+    double T_min=1;
     double dt=(log(T_max/T_min))/N_temps;
     double* Temp=new double[N_temps];
     
@@ -112,17 +111,21 @@ int main(int argc, char** argv){
         Spins[i]=2*(rand()%2)-1;
        
 //        cout<< Spins[i] << " ";
-//        if((i+1)%10==0){
+//        if((i+1)%L==0){
 //            cout<<endl;
 //        }
 
     }
 //    cout<<endl;
-//    int pos1=5;
+//    int pos1=L+int(L/2);
 //    int pos2=neighbours[pos1][0];
-//    cout<<"F["<< pos1 <<"," <<pos2<<"]" <<endl;
-//    cout<<F(Spins,neighbours, pos1,pos2,1,-1)<<endl;
-//
+//    cout<<"X["<< pos1 <<"," <<pos2<<"]="<< X(Spins,neighbours, pos1,pos2,1,+1) <<endl;
+//    //double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
+//    string STOP;
+//    cout<<"STOP!"<<endl;
+//    cin>>STOP;
+    
+
     double mean_E;
     double mean_E2;
     double mean_Cv;
@@ -184,7 +187,7 @@ int main(int argc, char** argv){
 
         }
      // This function needs a correction due to the temperature dependence of the effectiva Hamiltonian
-     Cv=( mean_E2-pow(mean_E,2))/(N_spins*pow(T,2))+ mean_Cv/(N_spins*pow(T,2));
+     Cv=(mean_E2-pow(mean_E,2))/(N_spins*pow(T,2))+ mean_Cv/(N_spins*pow(T,2));
 
      File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
         
@@ -215,7 +218,7 @@ int main(int argc, char** argv){
 ////////////////////////////////////////////////////////////////////////////////
 
 double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-2*(sign*Spins[i])*Spins[j];
+    double sum=-4*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
     double Neig_j=0;
@@ -234,8 +237,8 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     }
     //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
     //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
-    sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
-    sum*=-2*J/(Temp*KB);
+    sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
+    sum/=(Temp*KB);// Taking away the - signs
     
     return sum;
     
@@ -243,7 +246,7 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
 }
 
 double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-2*(sign*Spins[i])*Spins[j];
+    double sum=-4*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
     double Neig_j=0;
@@ -262,8 +265,8 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     }
 //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
 //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
-    sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
-    sum*=-2*J/(Temp*KB);
+    sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
+    sum/=(Temp*KB);// Taking away the - sign
     
     if(sum==0){
         //Using the Taylor expansion
@@ -275,7 +278,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
 }
 
 double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-2*(sign*Spins[i])*Spins[j];
+    double sum=-4*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
     double Neig_j=0;
@@ -292,8 +295,8 @@ double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
         }
     }
 
-    sum+=(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
-    sum*=-2*J/(Temp*KB);
+    sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
+    sum/=(Temp*KB);// taking away the - sign
     
     if(sum==0){
         //Using the Taylor expansion
@@ -317,8 +320,7 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             E+=J*Spins[i]*Spins[neighbours[i][j]];
             
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-//                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(H(Spins, neighbours,  i, j,Temp,+1));
-                E-=4*(pow(Jperp,2)/(Temp*KB))*(H(Spins, neighbours,  i, j,Temp,+1));
+                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(H(Spins, neighbours,  i, j,Temp,+1));
             }// Get the energy only if the term contributes, i.e., if the interaction is AFM
         }
     }
