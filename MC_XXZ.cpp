@@ -22,7 +22,7 @@ double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
 
 #define J 1. // Positive for AFM interactions
-#define Jperp 0.02
+#define Jperp 0.1
 #define KB 1.
 #define Z 4
 
@@ -197,18 +197,17 @@ int main(int argc, char** argv){
     File_E_M.close();
     File_Magnettization_powers.close();
     
-    for(int i=0;i<N_spins;i++){
-        
-        cout<< Spins[i] << " ";
-        
-        
-        if((i+1)%SQU==0){
-            cout<<endl;
-        }
-
-    }
-    cout<<endl;
-    cout<< int(2.9)<<endl;
+//    for(int i=0;i<N_spins;i++){
+//
+//        cout<< Spins[i] << " ";
+//
+//
+//        if((i+1)%SQU==0){
+//            cout<<endl;
+//        }
+//
+//    }
+//    cout<<endl;
     
     return 0;
 }
@@ -222,9 +221,7 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
     double Neig_i=0;
     double Neig_j=0;
-    //    cout<<"Sum before="<< sum<<endl;
-    //    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
-    //    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
+   
     for(int k=0;k<Z;k++){
         Neig_i+=Spins[neighbours[i][k]];
         Neig_j+=Spins[neighbours[j][k]];
@@ -233,10 +230,8 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
             Neig_j-=2*Spins[neighbours[j][k]];
             
         }
-        //        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
     }
-    //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
-    //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
+   
     sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
     sum/=(Temp*KB);// Taking away the - signs
     
@@ -300,7 +295,10 @@ double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
     if(sum==0){
         //Using the Taylor expansion
-        return 1;
+        return 1.;
+    }
+    if((exp(sum)-1)/sum<0){
+        cout<<"Negative Value! Something is wrong in H!!!"<<endl;
     }
     return (exp(sum)-1)/sum;
     
@@ -320,7 +318,7 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             E+=J*Spins[i]*Spins[neighbours[i][j]];
             
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                E-=2*(pow(Jperp,2)/(Temp*KB))*(1-Spins[i]*Spins[neighbours[i][j]])*(H(Spins, neighbours,  i, j,Temp,+1));
+                E-=4*(pow(Jperp,2)/(Temp*KB))*(H(Spins, neighbours,  i, neighbours[i][j],Temp,+1));//*(1-Spins[i]*Spins[neighbours[i][j]])
             }// Get the energy only if the term contributes, i.e., if the interaction is AFM
         }
     }
@@ -340,7 +338,7 @@ double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp ){
             
             
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                Cv+=2*pow(Jperp,2)*(1-Spins[i]*Spins[neighbours[i][j]])*exp(X(Spins, neighbours,  i, j,Temp,+1));
+                Cv+=2*pow(Jperp,2)*(1-Spins[i]*Spins[neighbours[i][j]])*exp(X(Spins, neighbours,  i, neighbours[i][j],Temp,+1));
                 
             }// Get the energy only if the term contributes
         }
@@ -367,8 +365,8 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
             DE -= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
             
             if(Jperp!=0){
-                H_pi_j=H(Spins, neighbours,  site, j,T,+1);
-                H_ni_j=H(Spins, neighbours,  site, j,T,-1);
+                H_pi_j=H(Spins, neighbours,  site, neighbours[site][j],T,+1);
+                H_ni_j=H(Spins, neighbours,  site, neighbours[site][j],T,-1);
                 
                 DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
                 DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
