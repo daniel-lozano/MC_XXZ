@@ -5,7 +5,7 @@ from sys import  argv
 size=argv[1]#input("Enter the size of the lattice=")
 FILE=np.loadtxt("Energy_magnetization_L"+size+".txt")
 N=50
-FILE_O=np.loadtxt("Energy_magnetization_L"+str(N)+"_no_Jperp.txt")
+FILE_O=np.loadtxt("Data_"+str(N)+"_no_Jperpp.txt")
 
 print(FILE.shape)
 
@@ -43,8 +43,8 @@ plt.plot(T,Cv,"^-",label="$ T_c= $"+str(T[np.argmax(Cv)]))
 plt.plot(T_O,Cv_O,"o-",label="$ T_c= $"+str(T_O[np.argmax(Cv_O)]))
 plt.ylabel(" $ C $")
 plt.xlabel("$ T $")
-plt.ylim(0,2.3)
-plt.xlim(1.5,3)
+plt.ylim(0,3)
+plt.xlim(1.5,max(T))
 plt.legend()
 plt.show()
 
