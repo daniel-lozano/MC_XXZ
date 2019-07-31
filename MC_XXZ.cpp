@@ -3,6 +3,8 @@
 #include <fstream>
 #include <time.h>
 #include <string.h>
+#include <iomanip>
+#include <sstream>
 using namespace std;
 
 
@@ -17,19 +19,16 @@ double get_magnetization_B(int* Spins, int N);
 double random_double();
 double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
-double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
-
-
+double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
 #define J 1. // Positive for AFM interactions
-#define Jperp 0.1
+#define Jperp 0.2
 #define KB 1.
 #define Z 4
 
 int main(int argc, char** argv){
     
     /// Constants of the model ///
-    
     
     /// Lattice constants ///
     int SQU=atoi(argv[1]);
@@ -96,7 +95,13 @@ int main(int argc, char** argv){
     /// Files to be use ///
     ofstream File_E_M,File_Magnettization_powers;
     
-    File_E_M.open("Energy_magnetization_L"+ to_string(L)+".txt");
+    //Setting the name of the file to contain the information of Jperp//
+    std::stringstream stream;
+    stream << std::fixed << std::setprecision(2) << Jperp ;
+    std::string s = stream.str();
+    cout<<"Jperp="<< s<<endl;
+    
+    File_E_M.open("Energy_magnetization_L"+ to_string(L)+"_Jperp"+s+".txt");
     File_Magnettization_powers.open("Magnetization.txt",ios::app);
   
  
@@ -145,7 +150,7 @@ int main(int argc, char** argv){
         double T=Temp[n_t];
         
         /// PRINTING CURRENT TEMPERATURE MOD 10 ///
-        if(n_t%5==0){cout << "Temperature = "<< T<< endl;}
+        if(n_t%10==0){cout << "Temperature = "<< T<< endl;}
         
         ///VARIABLES FOR THE AVERAGES///
         mean_E=0;
@@ -208,7 +213,7 @@ int main(int argc, char** argv){
 //
 //    }
 //    cout<<endl;
-    
+    cout<<"Jperp="<<s<<endl;
     return 0;
 }
 
@@ -272,7 +277,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
 }
 
-double H(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
+double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     double sum=-4*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
@@ -318,7 +323,7 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             E+=J*Spins[i]*Spins[neighbours[i][j]];
             
             if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                E-=4*(pow(Jperp,2)/(Temp*KB))*(H(Spins, neighbours,  i, neighbours[i][j],Temp,+1));//*(1-Spins[i]*Spins[neighbours[i][j]])
+                E-=4*(pow(Jperp,2)/(Temp*KB))*(H_func(Spins, neighbours,  i, neighbours[i][j],Temp,+1));//*(1-Spins[i]*Spins[neighbours[i][j]])
             }// Get the energy only if the term contributes, i.e., if the interaction is AFM
         }
     }
@@ -365,8 +370,8 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
             DE -= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
             
             if(Jperp!=0){
-                H_pi_j=H(Spins, neighbours,  site, neighbours[site][j],T,+1);
-                H_ni_j=H(Spins, neighbours,  site, neighbours[site][j],T,-1);
+                H_pi_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,+1);
+                H_ni_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,-1);
                 
                 DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
                 DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
@@ -446,6 +451,4 @@ double random_double(){
     return x;
     
 }
-
-
 
