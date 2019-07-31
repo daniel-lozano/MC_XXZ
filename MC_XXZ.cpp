@@ -21,8 +21,8 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
 double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 
-#define J 1. // Positive for AFM interactions
-#define Jperp 0.2
+#define J 1.00 // Positive for AFM interactions
+#define Jperp 1.00
 #define KB 1.
 #define Z 4
 
@@ -99,7 +99,9 @@ int main(int argc, char** argv){
     std::stringstream stream;
     stream << std::fixed << std::setprecision(2) << Jperp ;
     std::string s = stream.str();
-    cout<<"Jperp="<< s<<endl;
+
+    cout<<"J="<< J<<endl;
+    cout<<"Jperp="<< Jperp<<endl;
     
     File_E_M.open("Energy_magnetization_L"+ to_string(L)+"_Jperp"+s+".txt");
     File_Magnettization_powers.open("Magnetization.txt",ios::app);
@@ -115,21 +117,12 @@ int main(int argc, char** argv){
     for(int i=0;i<N_spins;i++){
         Spins[i]=2*(rand()%2)-1;
        
-//        cout<< Spins[i] << " ";
-//        if((i+1)%L==0){
-//            cout<<endl;
-//        }
+        cout<< Spins[i] << " ";
+        if((i+1)%L==0){
+            cout<<endl;
+        }
 
     }
-//    cout<<endl;
-//    int pos1=L+int(L/2);
-//    int pos2=neighbours[pos1][0];
-//    cout<<"X["<< pos1 <<"," <<pos2<<"]="<< X(Spins,neighbours, pos1,pos2,1,+1) <<endl;
-//    //double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
-//    string STOP;
-//    cout<<"STOP!"<<endl;
-//    cin>>STOP;
-    
 
     double mean_E;
     double mean_E2;
@@ -142,6 +135,45 @@ int main(int argc, char** argv){
     double mean_MB;
     double E,Cv,prob,r;
 
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    double DE_check=0, H_pi_j,H_ni_j;
+    int site1=0;
+    double T=10;
+    double E_check=0;
+    
+   
+    
+    for(int j=0; j<Z;j++){
+        DE_check -= 2*J*Spins[site1]*Spins[neighbours[site1][j]] ;
+//        cout<<neighbours[site1][j]<<endl;
+//        cout<<"Only J DE= "<<DE<<endl;
+        if(Jperp!=0){
+            
+            H_pi_j=H_func(Spins, neighbours,  site1, neighbours[site1][j],T,+1);
+            H_ni_j=H_func(Spins, neighbours,  site1, neighbours[site1][j],T,-1);
+//            cout<<"j=" <<neighbours[site1][j]<<" H_pi"<<H_pi_j<<endl;
+//            cout<<"j=" <<neighbours[site1][j]<<" H_ni"<<H_ni_j<<endl;
+            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
+//            cout<<"Only H_ni_j-H_pi_j, DE= "<<DE<<endl;
+            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(Spins[site1]*Spins[neighbours[site1][j]])*(H_ni_j+H_pi_j);
+//            cout<<"Full, DE= "<<DE<<endl;
+        }
+    }
+    cout<<"with function DE="<<DE_check<<endl;
+    E_check=-get_Energy(Spins, neighbours,N_spins,T);
+    Spins[site1]*=-1;
+    E_check+=get_Energy(Spins, neighbours,N_spins,T);
+    cout<< "with energy function DE="<<E_check<<endl;
+    string STOP;
+    cout<<"STOP"<<endl;
+    cin>>STOP;
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
     /// Loop over the temperatures ///
     for(int n_t=0; n_t<N_temps;n_t++){
@@ -222,7 +254,7 @@ int main(int argc, char** argv){
 ////////////////////////////////////////////////////////////////////////////////
 
 double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-4*J*(sign*Spins[i])*Spins[j];
+    double sum=-4.*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
     double Neig_j=0;
@@ -230,11 +262,10 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     for(int k=0;k<Z;k++){
         Neig_i+=Spins[neighbours[i][k]];
         Neig_j+=Spins[neighbours[j][k]];
-        
-        if(sign==-1){// If the sign is used then the ith sign must be added separatelly
-            Neig_j-=2*Spins[neighbours[j][k]];
-            
-        }
+    }
+    
+    if(sign==-1){// If the sign is used then the ith sign must be added separatelly
+        Neig_j-=2*Spins[i];
     }
    
     sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
@@ -246,7 +277,7 @@ double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
 }
 
 double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-4*J*(sign*Spins[i])*Spins[j];
+    double sum=-4.*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
     double Neig_j=0;
@@ -257,11 +288,10 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
         Neig_i+=Spins[neighbours[i][k]];
         Neig_j+=Spins[neighbours[j][k]];
         
-        if(sign==-1){// If the sign is used then the ith sign must be added separatelly
-            Neig_j-=2*Spins[neighbours[j][k]];
-            
-        }
-//        sum+=(Spins[i]*Spins[neighbours[j][k]]+ Spins[j]*Spins[neighbours[i][k]]);
+    }
+    if(sign==-1){// If the sign is used then the ith sign must be added separatelly
+        Neig_j-=2*Spins[i];
+        
     }
 //    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
 //    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
@@ -278,7 +308,8 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
 }
 
 double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-4*J*(sign*Spins[i])*Spins[j];
+    
+    double sum=-4.*J*(sign*Spins[i])*Spins[j];
     
     double Neig_i=0;
     double Neig_j=0;
@@ -288,21 +319,20 @@ double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     for(int k=0;k<Z;k++){
         Neig_i+=Spins[neighbours[i][k]];
         Neig_j+=Spins[neighbours[j][k]];
+    }
+    if(sign==-1){// If the sign is used then the i-th sign must be added separatelly
+        Neig_j-=2*Spins[i];
         
-        if(sign==-1){// If the sign is used then the i-th sign must be added separatelly
-            Neig_j-=2*Spins[neighbours[j][k]];
-            
-        }
     }
 
-    sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
+    sum+=2.*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
     sum/=(Temp*KB);// taking away the - sign
     
     if(sum==0){
         //Using the Taylor expansion
-        return 1.;
+        return 1.0;
     }
-    if((exp(sum)-1)/sum<0){
+    if((exp(sum)-1.)/sum<0){
         cout<<"Negative Value! Something is wrong in H!!!"<<endl;
     }
     return (exp(sum)-1)/sum;
@@ -322,8 +352,9 @@ double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
             
             E+=J*Spins[i]*Spins[neighbours[i][j]];
             
-            if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                E-=4*(pow(Jperp,2)/(Temp*KB))*(H_func(Spins, neighbours,  i, neighbours[i][j],Temp,+1));//*(1-Spins[i]*Spins[neighbours[i][j]])
+            if(Jperp !=0 ){
+                
+                E-=2.*(pow(Jperp,2)/(Temp*KB))*(1.-Spins[i]*Spins[neighbours[i][j]])*(H_func(Spins, neighbours,  i, neighbours[i][j],Temp,+1));//
             }// Get the energy only if the term contributes, i.e., if the interaction is AFM
         }
     }
