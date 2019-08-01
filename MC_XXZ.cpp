@@ -20,9 +20,10 @@ double random_double();
 double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
 double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
+double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos);
 
 #define J 1.00 // Positive for AFM interactions
-#define Jperp 1.00
+#define Jperp 1.
 #define KB 1.
 #define Z 4
 
@@ -139,26 +140,45 @@ int main(int argc, char** argv){
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    double DE_check=0, H_pi_j,H_ni_j;
+    double DE_check=0;
     int site1=0;
-    double T=10;
+    int posj,posk;
+    double T=0.5;
     double E_check=0;
+    double H_ij_pi,H_ij_ni;
+    double H_jk_pi,H_jk_ni;
     
    
     
     for(int j=0; j<Z;j++){
-        DE_check -= 2*J*Spins[site1]*Spins[neighbours[site1][j]] ;
+        posj=neighbours[site1][j];//Position of the jth neighbour
+        
+        DE_check -= 2*J*Spins[site1]*Spins[posj];
 //        cout<<neighbours[site1][j]<<endl;
 //        cout<<"Only J DE= "<<DE<<endl;
         if(Jperp!=0){
             
-            H_pi_j=H_func(Spins, neighbours,  site1, neighbours[site1][j],T,+1);
-            H_ni_j=H_func(Spins, neighbours,  site1, neighbours[site1][j],T,-1);
-//            cout<<"j=" <<neighbours[site1][j]<<" H_pi"<<H_pi_j<<endl;
-//            cout<<"j=" <<neighbours[site1][j]<<" H_ni"<<H_ni_j<<endl;
-            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
-//            cout<<"Only H_ni_j-H_pi_j, DE= "<<DE<<endl;
-            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(Spins[site1]*Spins[neighbours[site1][j]])*(H_ni_j+H_pi_j);
+//            H_ij_pi=H_func(Spins, neighbours,  site1, posj,T,+1);
+//            H_ij_ni=H_func(Spins, neighbours,  site1, posj,T,-1);
+//
+            H_ij_pi=H_DE(Spins, neighbours,  site1, posj,T,+1,site1);
+            H_ij_ni=H_DE(Spins, neighbours,  site1, posj,T,-1,site1);
+            
+            
+            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(H_ij_ni-H_ij_pi);
+            
+            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(Spins[site1]*Spins[posj])*(H_ij_ni+H_ij_pi);
+            
+            for(int k=0; k<Z; k++){
+                posk=neighbours[posj][k];
+                
+                if(posk!=site1 && Spins[posj]!=Spins[posk] ){
+                    
+                    H_jk_pi=H_DE(Spins,neighbours, posj,posk,T,+1, site1);
+                    H_jk_ni=H_DE(Spins,neighbours, posj,posk,T,-1, site1);
+                    DE_check -=2.*(pow(Jperp,2)/(T*KB))*(1-Spins[posj]*Spins[posk])*( H_jk_ni-H_jk_pi );
+                }
+            }
 //            cout<<"Full, DE= "<<DE<<endl;
         }
     }
@@ -167,6 +187,7 @@ int main(int argc, char** argv){
     Spins[site1]*=-1;
     E_check+=get_Energy(Spins, neighbours,N_spins,T);
     cout<< "with energy function DE="<<E_check<<endl;
+    cout<<"Overal difference is= "<< E_check-DE_check<<endl;
     string STOP;
     cout<<"STOP"<<endl;
     cin>>STOP;
@@ -310,7 +331,6 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
 double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
     double sum=-4.*J*(sign*Spins[i])*Spins[j];
-    
     double Neig_i=0;
     double Neig_j=0;
     //    cout<<"Sum before="<< sum<<endl;
@@ -339,6 +359,66 @@ double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
     
     
 }
+
+double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos){
+    
+    double sum=-4.*J*Spins[i]*Spins[j];
+    
+    if( (pos==i || pos ==j) && sign==-1 ){
+        sum*=sign;
+    }
+    
+    double Neig_i=0;
+    double Neig_j=0;
+    
+    int pik,pjk;
+    
+    //    cout<<"Sum before="<< sum<<endl;
+    //    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
+    //    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
+    for(int k=0;k<Z;k++){
+        pik=neighbours[i][k];
+        pjk=neighbours[j][k];
+        
+        Neig_i+=Spins[pik];
+        Neig_j+=Spins[pjk];
+        
+        //Additional step which flips the spin in the site pos
+        if(pos==pik && sign==-1 ){// Substract if the neighbour was suppose to be flipped
+            Neig_i-=2*Spins[pik];
+        }
+        if(pos==pjk && sign==-1 ){
+            Neig_j-=2*Spins[pjk];
+        }
+    }
+    if(pos==i){
+        sum+=2.*J*(sign*Spins[i]*Neig_i);
+    }
+    else{
+        sum+=2.*J*(Spins[i]*Neig_i);
+        
+    }
+    if(pos==j){
+        sum+=2.*J*(sign*Spins[j]*Neig_j);
+    }
+    else{
+        sum+=2.*J*(Spins[j]*Neig_j);
+    }
+    
+    sum/=(Temp*KB);// taking away the - sign
+    
+    if(sum==0){
+        //Using the Taylor expansion
+        return 1.0;
+    }
+    if((exp(sum)-1.)/sum<0){
+        cout<<"Negative Value! Something is wrong in H!!!"<<endl;
+    }
+    return (exp(sum)-1)/sum;
+    
+    
+}
+
 
 
 double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
