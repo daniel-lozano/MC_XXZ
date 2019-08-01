@@ -23,7 +23,7 @@ double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos);
 
 #define J 1.00 // Positive for AFM interactions
-#define Jperp 1.
+#define Jperp 0.10
 #define KB 1.
 #define Z 4
 
@@ -80,7 +80,7 @@ int main(int argc, char** argv){
     
     int N_temps=50;
     double T_max=4;
-    double T_min=1;
+    double T_min=1.5;
     double dt=(log(T_max/T_min))/N_temps;
     double* Temp=new double[N_temps];
     
@@ -469,25 +469,63 @@ void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
     double prob,r;
     double H_pi_j;
     double H_ni_j;
+    int posj,posk;
+    double H_ij_pi,H_ij_ni;
+    double H_jk_pi,H_jk_ni;
+    
     
     for(int N=0; N<N_spins; N++){
         /// site to be flipped ///
         site=(rand()%N_spins);
 
         /// Defining Energy of the flip ///
+//        DE=0;
+//
+//        for(int j=0; j<Z;j++){
+//            DE -= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
+//
+//            if(Jperp!=0){
+//                H_pi_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,+1);
+//                H_ni_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,-1);
+//
+//                DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
+//                DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
+//
+//            }
         DE=0;
         
         for(int j=0; j<Z;j++){
-            DE -= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
+            posj=neighbours[site][j];//Position of the jth neighbour
             
+            DE -= 2*J*Spins[site]*Spins[posj];
+            //        cout<<neighbours[site1][j]<<endl;
+            //        cout<<"Only J DE= "<<DE<<endl;
             if(Jperp!=0){
-                H_pi_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,+1);
-                H_ni_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,-1);
                 
-                DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
-                DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
+                //            H_ij_pi=H_func(Spins, neighbours,  site1, posj,T,+1);
+                //            H_ij_ni=H_func(Spins, neighbours,  site1, posj,T,-1);
+                //
+                H_ij_pi=H_DE(Spins, neighbours,  site, posj,T,+1,site);
+                H_ij_ni=H_DE(Spins, neighbours,  site, posj,T,-1,site);
                 
+                
+                DE -= 2.*(pow(Jperp,2)/(T*KB))*(H_ij_ni-H_ij_pi);
+                
+                DE -= 2.*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[posj])*(H_ij_ni+H_ij_pi);
+                
+                for(int k=0; k<Z; k++){
+                    posk=neighbours[posj][k];
+                    
+                    if(posk!=site && Spins[posj]!=Spins[posk] ){
+                        
+                        H_jk_pi=H_DE(Spins,neighbours, posj,posk,T,+1, site);
+                        H_jk_ni=H_DE(Spins,neighbours, posj,posk,T,-1, site);
+                        DE -=2.*(pow(Jperp,2)/(T*KB))*(1-Spins[posj]*Spins[posk])*( H_jk_ni-H_jk_pi );
+                    }
+                }
+                //            cout<<"Full, DE= "<<DE<<endl;
             }
+        
         }
         /// Defining probability
         prob=exp(-DE/(KB*T));
