@@ -8,11 +8,10 @@
 using namespace std;
 
 
-void sweep(int* Spins, int** neighbours,double T, int N_spins  );
-double get_Energy(int* Spins, int** neighbours, int N , double Temp );
-double get_Cv_correction(int* Spins, int** neighbours, int N , double Temp );
+void sweep(int* Spins, int** neighbours,int** neighbours2,int** neighbours3, double T, int N_spins  );
+double get_Energy(int* Spins, int** neighbours , int** neighbours2, int** neighbours3,  int N, double Temp );
 double get_magnetization(int* Spins, int N);
-
+double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp );
 double get_magnetization_A(int* Spins, int N);
 double get_magnetization_B(int* Spins, int N);
 
@@ -57,26 +56,44 @@ int main(int argc, char** argv){
     ////------------------------------------------------------------------
     
     int** neighbours =new int*[N_spins];
+    int** neighbours2 =new int*[N_spins];
+    int** neighbours3 =new int*[N_spins];
     for(int i=0;i<N_spins;i++){
         neighbours[i]=new int[Z];
+        neighbours2[i]=new int[Z];
+        neighbours3[i]=new int[Z];
     }
     
     /// Fealing the neighbour matrix ///
     for(int i=0;i<L;i++){
+        
         for(int j=0;j<H;j++){
+            
             neighbours[i*L+j][0]=i*L+(j+1)%H; //Right neighbour
-            
             neighbours[i*L+j][1]=((i-1+L)%L)*L+j; //Upwards neighbour
-            if(i==0){neighbours[i*L+j][1]=(L-1)*L+j; }
-            
             neighbours[i*L+j][2]=i*L+(j-1+H)%H; //Left neighbour
-            if(j==0){neighbours[i*L+j][2]=i*L+H-1; }
-            
             neighbours[i*L+j][3]=((i+1)%L)*L+j; //Downwards neighbour
+            
+            neighbours2[i*L+j][0]=((i-1+L)%L)*L+(j+1+H)%H; //Right neighbour
+            neighbours2[i*L+j][1]=((i-1+L)%L)*L+(j-1+H)%H; //Upwards neighbour
+            neighbours2[i*L+j][2]=((i+1+L)%L)*L+(j-1+H)%H; //Left neighbour
+            neighbours2[i*L+j][3]=((i+1+L)%L)*L+(j+1+H)%H;; //Downwards neighbour
+            
+            neighbours3[i*L+j][0]=i*L+(j+2)%H; //Right neighbour
+            neighbours3[i*L+j][1]=((i-2+L)%L)*L+j; //Upwards neighbour
+            neighbours3[i*L+j][2]=i*L+(j-2+H)%H; //Left neighbour
+            neighbours3[i*L+j][3]=((i+2)%L)*L+j; //Downwards neighbour
         }
     }
-    
- 
+//    int positions=0;
+//    cout<< "Initial position="<< positions<<endl;
+//    for(int i=0; i<Z; i++){
+//        cout<< "1st NN "<<neighbours[positions][i]<< endl;
+//        cout<< "2nd NN "<<neighbours2[positions][i]<< endl;
+//        cout<< "3rd NN "<<neighbours3[positions][i]<< endl;
+//    }
+//
+//
     
     int N_temps=50;
     double T_max=4;
@@ -104,7 +121,7 @@ int main(int argc, char** argv){
     cout<<"J="<< J<<endl;
     cout<<"Jperp="<< Jperp<<endl;
     
-    File_E_M.open("Energy_magnetization_L"+ to_string(L)+"_Jperp"+s+".txt");
+    File_E_M.open("Energy_magnetization_J123_L"+ to_string(L)+"_Jperp"+s+".txt");
     File_Magnettization_powers.open("Magnetization.txt",ios::app);
   
  
@@ -140,59 +157,10 @@ int main(int argc, char** argv){
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//    double DE_check=0;
-//    int site1=0;
-//    int posj,posk;
-//    double T=0.5;
-//    double E_check=0;
-//    double H_ij_pi,H_ij_ni;
-//    double H_jk_pi,H_jk_ni;
-//    
-//   
-//    
-//    for(int j=0; j<Z;j++){
-//        posj=neighbours[site1][j];//Position of the jth neighbour
-//        
-//        DE_check -= 2*J*Spins[site1]*Spins[posj];
-////        cout<<neighbours[site1][j]<<endl;
-////        cout<<"Only J DE= "<<DE<<endl;
-//        if(Jperp!=0){
-//            
-////            H_ij_pi=H_func(Spins, neighbours,  site1, posj,T,+1);
-////            H_ij_ni=H_func(Spins, neighbours,  site1, posj,T,-1);
-////
-//            H_ij_pi=H_DE(Spins, neighbours,  site1, posj,T,+1,site1);
-//            H_ij_ni=H_DE(Spins, neighbours,  site1, posj,T,-1,site1);
-//            
-//            
-//            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(H_ij_ni-H_ij_pi);
-//            
-//            DE_check -= 2.*(pow(Jperp,2)/(T*KB))*(Spins[site1]*Spins[posj])*(H_ij_ni+H_ij_pi);
-//            
-//            for(int k=0; k<Z; k++){
-//                posk=neighbours[posj][k];
-//                
-//                if(posk!=site1 && Spins[posj]!=Spins[posk] ){
-//                    
-//                    H_jk_pi=H_DE(Spins,neighbours, posj,posk,T,+1, site1);
-//                    H_jk_ni=H_DE(Spins,neighbours, posj,posk,T,-1, site1);
-//                    DE_check -=2.*(pow(Jperp,2)/(T*KB))*(1-Spins[posj]*Spins[posk])*( H_jk_ni-H_jk_pi );
-//                }
-//            }
-////            cout<<"Full, DE= "<<DE<<endl;
-//        }
-//    }
-//    cout<<"with function DE="<<DE_check<<endl;
-//    E_check=-get_Energy(Spins, neighbours,N_spins,T);
-//    Spins[site1]*=-1;
-//    E_check+=get_Energy(Spins, neighbours,N_spins,T);
-//    cout<< "with energy function DE="<<E_check<<endl;
-//    cout<<"Overal difference is= "<< E_check-DE_check<<endl;
-//    string STOP;
-//    cout<<"STOP"<<endl;
-//    cin>>STOP;
-    
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
@@ -218,18 +186,20 @@ int main(int argc, char** argv){
 
         /// Loop over equillibrium and measure sweeps ///
         for(int n_eq=0; n_eq<n_eqSweeps;n_eq++){
-            sweep(Spins, neighbours,T,N_spins );
+//            sweep(Spins, neighbours,T,N_spins );
+            sweep(Spins, neighbours,neighbours2,neighbours3, T, N_spins  );
+
         }
         
         /// Measuring after equilibrating the system ///
 
             for(int n_eq=0; n_eq<n_measSweeps;n_eq++){
                 
-                sweep(Spins, neighbours,T,N_spins );
-                
+                sweep(Spins, neighbours,neighbours2,neighbours3, T, N_spins  );
+
                 /// Measuring after equilibrating the system ///
    
-                E=get_Energy(Spins, neighbours,N_spins,T);
+                E=get_Energy(Spins, neighbours,neighbours2,neighbours3,N_spins,T);
                 
                 mean_E  +=E/(n_measSweeps);
                 mean_E2 +=pow(E,2)/(n_measSweeps);
@@ -247,8 +217,9 @@ int main(int argc, char** argv){
      // This function needs a correction due to the temperature dependence of the effectiva Hamiltonian
      Cv=(mean_E2-pow(mean_E,2))/(N_spins*pow(T,2))+ mean_Cv/(N_spins*pow(T,2));
 
+//     File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
      File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
-        
+
      File_Magnettization_powers<<  T << " " << pow(mean_M2,2) << " "<< mean_M4<<" "<< SQU <<endl;
         
     }
@@ -421,21 +392,28 @@ double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int p
 
 
 
-double get_Energy(int* Spins, int** neighbours,  int N, double Temp ){
+double get_Energy(int* Spins, int** neighbours , int** neighbours2, int** neighbours3,  int N, double Temp ){
     /// Energy variable to be computed ///
     double E=0;
+    double J1,J2,J3;
+    double beta=1./(KB*Temp);
+    J1=J+pow(Jperp,2)*beta-(2./3.)*J*pow(Jperp*beta,2);
+    J2=4*J*pow(Jperp*beta,2)/3;
+    J3=4*J*pow(Jperp*beta,2)/3;
+    
+    J1+=pow(Jperp,2)*beta-(4./3.)*J*pow(Jperp*beta,2);
+    J2+=8*J*pow(Jperp*beta,2)/3;
+    J3+=8*J*pow(Jperp*beta,2)/3;
     
     /// Loop over sites ///
     for(int i=0; i<N; i++){
         /// Loop over neighbours ///
         for(int j=0;j<Z; j++ ){
             
-            E+=J*Spins[i]*Spins[neighbours[i][j]];
-            
-            if(Jperp !=0 ){
-                
-                E-=2.*(pow(Jperp,2)/(Temp*KB))*(1.-Spins[i]*Spins[neighbours[i][j]])*(H_func(Spins, neighbours,  i, neighbours[i][j],Temp,+1));//
-            }// Get the energy only if the term contributes, i.e., if the interaction is AFM
+            E+=J1*Spins[i]*Spins[neighbours[i][j]];
+            E+=J2*Spins[i]*Spins[neighbours2[i][j]];
+            E+=J3*Spins[i]*Spins[neighbours3[i][j]];
+        
         }
     }
     return E/2.;// It is still symmetric!!!
@@ -463,69 +441,41 @@ double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp ){
     
 }
 
-void sweep(int* Spins, int** neighbours, double T, int N_spins  ){
+void sweep(int* Spins, int** neighbours,int** neighbours2,int** neighbours3, double T, int N_spins  ){
     int site;
     double DE;
     double prob,r;
-    double H_pi_j;
-    double H_ni_j;
-    int posj,posk;
-    double H_ij_pi,H_ij_ni;
-    double H_jk_pi,H_jk_ni;
+    int posj,posj2,posj3;
+
+    
+    double J1,J2,J3;
+    double beta=1./(KB*T);
+    
+    J1=J+pow(Jperp,2)*beta-(2./3.)*J*pow(Jperp*beta,2);
+    J2=4*J*pow(Jperp*beta,2)/3;
+    J3=4*J*pow(Jperp*beta,2)/3;
+    //Correction
+    J1+=pow(Jperp,2)*beta-(4./3.)*J*pow(Jperp*beta,2);
+    J2+=8*J*pow(Jperp*beta,2)/3;
+    J3+=8*J*pow(Jperp*beta,2)/3;
     
     
     for(int N=0; N<N_spins; N++){
         /// site to be flipped ///
         site=(rand()%N_spins);
 
-        /// Defining Energy of the flip ///
-//        DE=0;
-//
-//        for(int j=0; j<Z;j++){
-//            DE -= 2*J*Spins[site]*Spins[neighbours[site][j]] ;
-//
-//            if(Jperp!=0){
-//                H_pi_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,+1);
-//                H_ni_j=H_func(Spins, neighbours,  site, neighbours[site][j],T,-1);
-//
-//                DE -= 2*(pow(Jperp,2)/(T*KB))*(H_ni_j-H_pi_j);
-//                DE -= 2*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[neighbours[site][j]])*(H_ni_j+H_pi_j);
-//
-//            }
         DE=0;
         
         for(int j=0; j<Z;j++){
             posj=neighbours[site][j];//Position of the jth neighbour
+            posj2=neighbours2[site][j];//Position of the jth neighbour
+            posj3=neighbours3[site][j];//Position of the jth neighbour
             
-            DE -= 2*J*Spins[site]*Spins[posj];
+            DE -= 2*J1*Spins[site]*Spins[posj];
+            DE -= 2*J2*Spins[site]*Spins[posj];
+            DE -= 2*J3*Spins[site]*Spins[posj];
             //        cout<<neighbours[site1][j]<<endl;
             //        cout<<"Only J DE= "<<DE<<endl;
-            if(Jperp!=0){
-                
-                //            H_ij_pi=H_func(Spins, neighbours,  site1, posj,T,+1);
-                //            H_ij_ni=H_func(Spins, neighbours,  site1, posj,T,-1);
-                //
-                H_ij_pi=H_DE(Spins, neighbours,  site, posj,T,+1,site);
-                H_ij_ni=H_DE(Spins, neighbours,  site, posj,T,-1,site);
-                
-                
-                DE -= 2.*(pow(Jperp,2)/(T*KB))*(H_ij_ni-H_ij_pi);
-                
-                DE -= 2.*(pow(Jperp,2)/(T*KB))*(Spins[site]*Spins[posj])*(H_ij_ni+H_ij_pi);
-                
-                for(int k=0; k<Z; k++){
-                    posk=neighbours[posj][k];
-                    
-                    if(posk!=site && Spins[posj]!=Spins[posk] ){
-                        
-                        H_jk_pi=H_DE(Spins,neighbours, posj,posk,T,+1, site);
-                        H_jk_ni=H_DE(Spins,neighbours, posj,posk,T,-1, site);
-                        DE -=2.*(pow(Jperp,2)/(T*KB))*(1-Spins[posj]*Spins[posk])*( H_jk_ni-H_jk_pi );
-                    }
-                }
-                //            cout<<"Full, DE= "<<DE<<endl;
-            }
-        
         }
         /// Defining probability
         prob=exp(-DE/(KB*T));
