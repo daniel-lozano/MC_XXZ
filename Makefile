@@ -4,11 +4,10 @@
 plotea:Energy_magnetization.txt plot.py
 	python plot.py ${ARGS}
 
-Energy_magnetization.txt: a.out
-	./a.out ${ARGS}
-
-a.out:MC_XXZ.cpp
-	g++ MC_XXZ.cpp
+Energy_magnetization.txt: MC_H.out
+	./MC_H.out ${ARGS}
+MC_H.out:MC_XXZ.cpp
+	g++ MC_XXZ.cpp -o MC_H.out
 
 clean:
-	rm *.txt *.out
+	rm Energy*.txt *.out
