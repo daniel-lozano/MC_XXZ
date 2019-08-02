@@ -11,15 +11,11 @@ using namespace std;
 void sweep(int* Spins, int** neighbours,int** neighbours2,int** neighbours3, double T, int N_spins  );
 double get_Energy(int* Spins, int** neighbours , int** neighbours2, int** neighbours3,  int N, double Temp );
 double get_magnetization(int* Spins, int N);
-double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp );
+double get_Cv_correction(int* Spins, int** neighbours , int** neighbours2, int** neighbours3,  int N, double Temp );
 double get_magnetization_A(int* Spins, int N);
 double get_magnetization_B(int* Spins, int N);
 
 double random_double();
-double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
-double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
-double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
-double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos);
 
 #define J 1.00 // Positive for AFM interactions
 #define Jperp 0.20
@@ -203,7 +199,7 @@ int main(int argc, char** argv){
                 
                 mean_E  +=E/(n_measSweeps);
                 mean_E2 +=pow(E,2)/(n_measSweeps);
-                mean_Cv += get_Cv_correction(Spins, neighbours,N_spins,T)/(n_measSweeps);
+                mean_Cv += get_Cv_correction(Spins, neighbours,neighbours2,neighbours3,N_spins,T)/(n_measSweeps);
                 
                 mean_M  +=get_magnetization(Spins, N_spins)/(n_measSweeps);
                 mean_M2 +=pow(mean_M*n_measSweeps/N_spins,2)/(n_measSweeps);
@@ -215,7 +211,7 @@ int main(int argc, char** argv){
 
         }
      // This function needs a correction due to the temperature dependence of the effectiva Hamiltonian
-     Cv=(mean_E2-pow(mean_E,2))/(N_spins*pow(T,2))+ mean_Cv/(N_spins*pow(T,2));
+     Cv=(mean_E2-pow(mean_E,2))/(N_spins*pow(T,2)) - mean_Cv/(N_spins*pow(T,2));
 
 //     File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
      File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
@@ -245,163 +241,17 @@ int main(int argc, char** argv){
 ////////////////////////FUNCTIONS OF THE SYSTEM ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-4.*J*(sign*Spins[i])*Spins[j];
-    
-    double Neig_i=0;
-    double Neig_j=0;
-   
-    for(int k=0;k<Z;k++){
-        Neig_i+=Spins[neighbours[i][k]];
-        Neig_j+=Spins[neighbours[j][k]];
-    }
-    
-    if(sign==-1){// If the sign is used then the ith sign must be added separatelly
-        Neig_j-=2*Spins[i];
-    }
-   
-    sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
-    sum/=(Temp*KB);// Taking away the - signs
-    
-    return sum;
-    
-    
-}
-
-double F(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    double sum=-4.*J*(sign*Spins[i])*Spins[j];
-    
-    double Neig_i=0;
-    double Neig_j=0;
-//    cout<<"Sum before="<< sum<<endl;
-//    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
-//    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
-    for(int k=0;k<Z;k++){
-        Neig_i+=Spins[neighbours[i][k]];
-        Neig_j+=Spins[neighbours[j][k]];
-        
-    }
-    if(sign==-1){// If the sign is used then the ith sign must be added separatelly
-        Neig_j-=2*Spins[i];
-        
-    }
-//    cout<<"Neigh_i "<< i<< "="<< Neig_i<<endl;
-//    cout<<"Neigh_j "<< j<< "="<< Neig_j<<endl;
-    sum+=2*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
-    sum/=(Temp*KB);// Taking away the - sign
-    
-    if(sum==0){
-        //Using the Taylor expansion
-        return 0.5;
-    }
-    return (exp(sum)-1-sum)/pow(sum,2);
-    
-    
-}
-
-double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign){
-    
-    double sum=-4.*J*(sign*Spins[i])*Spins[j];
-    double Neig_i=0;
-    double Neig_j=0;
-    //    cout<<"Sum before="<< sum<<endl;
-    //    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
-    //    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
-    for(int k=0;k<Z;k++){
-        Neig_i+=Spins[neighbours[i][k]];
-        Neig_j+=Spins[neighbours[j][k]];
-    }
-    if(sign==-1){// If the sign is used then the i-th sign must be added separatelly
-        Neig_j-=2*Spins[i];
-        
-    }
-
-    sum+=2.*J*(sign*Spins[i]*Neig_i+Spins[j]*Neig_j);
-    sum/=(Temp*KB);// taking away the - sign
-    
-    if(sum==0){
-        //Using the Taylor expansion
-        return 1.0;
-    }
-    if((exp(sum)-1.)/sum<0){
-        cout<<"Negative Value! Something is wrong in H!!!"<<endl;
-    }
-    return (exp(sum)-1)/sum;
-    
-    
-}
-
-double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos){
-    
-    double sum=-4.*J*Spins[i]*Spins[j];
-    
-    if( (pos==i || pos ==j) && sign==-1 ){
-        sum*=sign;
-    }
-    
-    double Neig_i=0;
-    double Neig_j=0;
-    
-    int pik,pjk;
-    
-    //    cout<<"Sum before="<< sum<<endl;
-    //    cout<< "Spin[i="<<i<<"]="<<Spins[i]<<endl;
-    //    cout<< "Spin[j="<<j<<"]="<<Spins[j]<<endl;
-    for(int k=0;k<Z;k++){
-        pik=neighbours[i][k];
-        pjk=neighbours[j][k];
-        
-        Neig_i+=Spins[pik];
-        Neig_j+=Spins[pjk];
-        
-        //Additional step which flips the spin in the site pos
-        if(pos==pik && sign==-1 ){// Substract if the neighbour was suppose to be flipped
-            Neig_i-=2*Spins[pik];
-        }
-        if(pos==pjk && sign==-1 ){
-            Neig_j-=2*Spins[pjk];
-        }
-    }
-    if(pos==i){
-        sum+=2.*J*(sign*Spins[i]*Neig_i);
-    }
-    else{
-        sum+=2.*J*(Spins[i]*Neig_i);
-        
-    }
-    if(pos==j){
-        sum+=2.*J*(sign*Spins[j]*Neig_j);
-    }
-    else{
-        sum+=2.*J*(Spins[j]*Neig_j);
-    }
-    
-    sum/=(Temp*KB);// taking away the - sign
-    
-    if(sum==0){
-        //Using the Taylor expansion
-        return 1.0;
-    }
-    if((exp(sum)-1.)/sum<0){
-        cout<<"Negative Value! Something is wrong in H!!!"<<endl;
-    }
-    return (exp(sum)-1)/sum;
-    
-    
-}
-
-
 
 double get_Energy(int* Spins, int** neighbours , int** neighbours2, int** neighbours3,  int N, double Temp ){
     /// Energy variable to be computed ///
     double E=0;
     double J1,J2,J3;
     double beta=1./(KB*Temp);
-    J1=J+pow(Jperp,2)*beta-(2./3.)*J*pow(Jperp*beta,2);
+    J1=J+pow(Jperp,2)*beta-(2./3.)*(2*Z-6)*J*pow(Jperp*beta,2);
     J2=4*J*pow(Jperp*beta,2)/3;
     J3=4*J*pow(Jperp*beta,2)/3;
     
-    J1+=pow(Jperp,2)*beta-(4./3.)*J*pow(Jperp*beta,2);
+    J1+=pow(Jperp,2)*beta-(4./3.)*(2*Z-6)*J*pow(Jperp*beta,2);
     J2+=8*J*pow(Jperp*beta,2)/3;
     J3+=8*J*pow(Jperp*beta,2)/3;
     
@@ -416,28 +266,39 @@ double get_Energy(int* Spins, int** neighbours , int** neighbours2, int** neighb
         
         }
     }
-    return E/2.;// It is still symmetric!!!
+    
+    return E/2.-pow(Jperp,2)*beta*N*Z;// It is still symmetric!!!
 
 }
 
-double get_Cv_correction(int* Spins, int** neighbours,  int N, double Temp ){
+double get_Cv_correction(int* Spins, int** neighbours , int** neighbours2, int** neighbours3,  int N, double Temp ){
     
     /// Energy variable to be computed ///
     double Cv=0;
+    double J1,J2,J3;
+    double beta=1./(KB*Temp);
+    
+    J1=2*(pow(Jperp,2)-(4./3.)*J*(2*Z-6)*beta*pow(Jperp,2) );
+    J2=2*8*J*beta*pow(Jperp,2)/3;
+    J3=2*8*J*beta*pow(Jperp,2)/3;
+    
+    J1+= -(4./3.)*(2*Z-6)*J*beta*pow(Jperp,2);
+    J2+=8*J*beta*pow(Jperp,2)/3;
+    J3+=8*J*beta*pow(Jperp,2)/3;
     
     /// Loop over sites ///
     for(int i=0; i<N; i++){
         /// Loop over neighbours ///
         for(int j=0;j<Z; j++ ){
             
+            Cv+=J1*Spins[i]*Spins[neighbours[i][j]];
+            Cv+=J2*Spins[i]*Spins[neighbours2[i][j]];
+            Cv+=J3*Spins[i]*Spins[neighbours3[i][j]];
             
-            if(Jperp !=0 && Spins[i]!=Spins[neighbours[i][j]]){
-                Cv+=2*pow(Jperp,2)*(1-Spins[i]*Spins[neighbours[i][j]])*exp(X(Spins, neighbours,  i, neighbours[i][j],Temp,+1));
-                
-            }// Get the energy only if the term contributes
         }
     }
-    return Cv/2.;// divide by two due to overcounting
+    
+    return Cv/2.- pow(Jperp,2)*N*Z;// It is still symmetric!!!
     
 }
 
