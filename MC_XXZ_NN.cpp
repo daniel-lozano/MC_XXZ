@@ -18,7 +18,7 @@ double get_magnetization_B(int* Spins, int N);
 double random_double();
 
 #define J 1.00 // Positive for AFM interactions
-#define Jperp 0.20
+#define Jperp 0.50
 #define KB 1.
 #define Z 4
 
@@ -247,12 +247,12 @@ double get_Energy(int* Spins, int** neighbours , int** neighbours2, int** neighb
     double E=0;
     double J1,J2,J3;
     double beta=1./(KB*Temp);
-    J1=J+pow(Jperp,2)*beta-(2./3.)*(2*Z-6)*J*pow(Jperp*beta,2);
-    J2=4*J*pow(Jperp*beta,2)/3;
+    J1=J+pow(Jperp,2)*beta-(4./3.)*(Z-1.)*J*pow(Jperp*beta,2);
+    J2=8*J*pow(Jperp*beta,2)/3;
     J3=4*J*pow(Jperp*beta,2)/3;
     
-    J1+=pow(Jperp,2)*beta-(4./3.)*(2*Z-6)*J*pow(Jperp*beta,2);
-    J2+=8*J*pow(Jperp*beta,2)/3;
+    J1+=pow(Jperp,2)*beta-(8./3.)*(Z-1.)*J*pow(Jperp*beta,2);
+    J2+=16*J*pow(Jperp*beta,2)/3;
     J3+=8*J*pow(Jperp*beta,2)/3;
     
     /// Loop over sites ///
@@ -278,13 +278,13 @@ double get_Cv_correction(int* Spins, int** neighbours , int** neighbours2, int**
     double J1,J2,J3;
     double beta=1./(KB*Temp);
     
-    J1=2*(pow(Jperp,2)-(4./3.)*J*(2*Z-6)*beta*pow(Jperp,2) );
-    J2=2*8*J*beta*pow(Jperp,2)/3;
-    J3=2*8*J*beta*pow(Jperp,2)/3;
+    J1=2*( pow(Jperp,2)-(8./3.)*J*(Z-1.)*beta*pow(Jperp,2) );
+    J2=2*  16*J*beta*pow(Jperp,2)/3;
+    J3=2*  8*J*beta*pow(Jperp,2)/3;
     
-    J1+= -(4./3.)*(2*Z-6)*J*beta*pow(Jperp,2);
-    J2+=8*J*beta*pow(Jperp,2)/3;
-    J3+=8*J*beta*pow(Jperp,2)/3;
+    J1+= -(8./3.)*(Z-1)*J*beta*pow(Jperp,2);
+    J2+= 16*J*beta*pow(Jperp,2)/3;
+    J3+= 8*J*beta*pow(Jperp,2)/3;
     
     /// Loop over sites ///
     for(int i=0; i<N; i++){
@@ -312,12 +312,13 @@ void sweep(int* Spins, int** neighbours,int** neighbours2,int** neighbours3, dou
     double J1,J2,J3;
     double beta=1./(KB*T);
     
-    J1=J+pow(Jperp,2)*beta-(2./3.)*J*pow(Jperp*beta,2);
-    J2=4*J*pow(Jperp*beta,2)/3;
+
+    J1=J+pow(Jperp,2)*beta-(4./3.)*(Z-1.)*J*pow(Jperp*beta,2);
+    J2=8*J*pow(Jperp*beta,2)/3;
     J3=4*J*pow(Jperp*beta,2)/3;
-    //Correction
-    J1+=pow(Jperp,2)*beta-(4./3.)*J*pow(Jperp*beta,2);
-    J2+=8*J*pow(Jperp*beta,2)/3;
+    
+    J1+=pow(Jperp,2)*beta-(8./3.)*(Z-1.)*J*pow(Jperp*beta,2);
+    J2+=16*J*pow(Jperp*beta,2)/3;
     J3+=8*J*pow(Jperp*beta,2)/3;
     
     
