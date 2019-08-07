@@ -23,7 +23,7 @@ double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos);
 
 #define J 1.00 // Positive for AFM interactions
-#define Jperp 0.50
+#define Jperp 0.05
 #define KB 1.
 #define Z 4
 
@@ -391,14 +391,14 @@ double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int p
             Neig_j-=2*Spins[pjk];
         }
     }
-    if(pos==i){
+    if(pos==i && sign==-1 ){
         sum+=2.*J*(sign*Spins[i]*Neig_i);
     }
     else{
         sum+=2.*J*(Spins[i]*Neig_i);
         
     }
-    if(pos==j){
+    if(pos==j && sign==-1){
         sum+=2.*J*(sign*Spins[j]*Neig_j);
     }
     else{
