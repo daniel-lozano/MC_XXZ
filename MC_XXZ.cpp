@@ -223,7 +223,7 @@ int main(int argc, char** argv){
         
         /// Measuring after equilibrating the system ///
 
-            for(int n_eq=0; n_eq<n_measSweeps;n_eq++){
+        for(int n_eq=0; n_eq<n_measSweeps;n_eq++){
                 
                 sweep(Spins, neighbours,T,N_spins );
                 

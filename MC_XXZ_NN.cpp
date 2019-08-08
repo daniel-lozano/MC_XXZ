@@ -189,25 +189,25 @@ int main(int argc, char** argv){
         
         /// Measuring after equilibrating the system ///
 
-            for(int n_eq=0; n_eq<n_measSweeps;n_eq++){
-                
-                sweep(Spins, neighbours,neighbours2,neighbours3, T, N_spins  );
+        for(int n_eq=0; n_eq<n_measSweeps;n_eq++){
+            
+            sweep(Spins, neighbours,neighbours2,neighbours3, T, N_spins  );
 
-                /// Measuring after equilibrating the system ///
-   
-                E=get_Energy(Spins, neighbours,neighbours2,neighbours3,N_spins,T);
-                
-                mean_E  +=E/(n_measSweeps);
-                mean_E2 +=pow(E,2)/(n_measSweeps);
-                mean_Cv += get_Cv_correction(Spins, neighbours,neighbours2,neighbours3,N_spins,T)/(n_measSweeps);
-                
-                mean_M  +=get_magnetization(Spins, N_spins)/(n_measSweeps);
-                mean_M2 +=pow(mean_M*n_measSweeps/N_spins,2)/(n_measSweeps);
-                mean_M4 +=pow(mean_M*n_measSweeps/N_spins,4)/(n_measSweeps);
-                
-                //Bipartite lattice magnetization
-                mean_MA +=get_magnetization_A(Spins, N_spins)/(n_measSweeps);
-                mean_MB +=get_magnetization_B(Spins, N_spins)/(n_measSweeps);
+            /// Measuring after equilibrating the system ///
+
+            E=get_Energy(Spins, neighbours,neighbours2,neighbours3,N_spins,T);
+            
+            mean_E  +=E/(n_measSweeps);
+            mean_E2 +=pow(E,2)/(n_measSweeps);
+            mean_Cv += get_Cv_correction(Spins, neighbours,neighbours2,neighbours3,N_spins,T)/(n_measSweeps);
+            
+            mean_M  +=get_magnetization(Spins, N_spins)/(n_measSweeps);
+            mean_M2 +=pow(mean_M*n_measSweeps/N_spins,2)/(n_measSweeps);
+            mean_M4 +=pow(mean_M*n_measSweeps/N_spins,4)/(n_measSweeps);
+            
+            //Bipartite lattice magnetization
+            mean_MA +=get_magnetization_A(Spins, N_spins)/(n_measSweeps);
+            mean_MB +=get_magnetization_B(Spins, N_spins)/(n_measSweeps);
 
         }
      // This function needs a correction due to the temperature dependence of the effectiva Hamiltonian
