@@ -40,7 +40,7 @@ int main(int argc, char** argv){
     
     double Tc=2.0/log(1+sqrt(2))*J; //
     
-    int n_eqSweeps=2000;
+    int n_eqSweeps=2000; 
     int n_measSweeps=7000;
   
     cout << "The size of the lattice is "<< SQU << endl;
