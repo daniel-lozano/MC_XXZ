@@ -22,7 +22,7 @@ double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
 double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos);
 
-#define J 1.00 // Positive for AFM interactions
+#define J -1.00 // Positive for AFM interactions
 #define Jperp 0.05
 #define KB 1.
 #define Z 4
