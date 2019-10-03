@@ -1,11 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
-s=input("J_perp=(x.xx)")
+s=input("J_perp (format \pm x.xx)=")
 FILE=np.loadtxt("Magnetization_Jperp"+s+".txt")
+
+N=50
 T=FILE[:,0]
 M22=FILE[:,1]
 M4=FILE[:,2]
-plt.plot(T,0.5*(1-(1./3)*M4/M22),"o-")
+lens=len(T)//N
+g=0.5*(1-(1./3)*M4/M22)
+labels=["L=10","L=15","L=12"]
+for i in range(lens):
+	plt.plot(T[N*i:(N)*(i+1)],g[N*i:(N)*(i+1)],"o-",label=labels[i])
+plt.legend()
+plt.xlabel("$T$")
+plt.ylabel("$ G $")
+plt.title("$J_{\perp}=$"+s)
 plt.show()
 #plt.legend()
 #plt.xlim(2.15,2.35)
