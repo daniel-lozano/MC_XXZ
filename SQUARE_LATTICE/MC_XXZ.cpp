@@ -40,8 +40,8 @@ int main(int argc, char** argv){
     
 //    double Tc=2.0/log(1+sqrt(2))*J; //
     
-    int n_eqSweeps=10000;
-    int n_measSweeps=20000;
+    int n_eqSweeps=1000000;
+    int n_measSweeps=2000000;
   
     cout << "The size of the lattice is "<< SQU << endl;
     cout << "The number of equillibrium sweeps= "<< n_eqSweeps<<endl;
