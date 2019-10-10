@@ -16,6 +16,10 @@ double get_magnetization(int* Spins, int N);
 double get_magnetization_A(int* Spins, int N);
 double get_magnetization_B(int* Spins, int N);
 
+double jackknife(double* array,int size);
+
+
+
 double random_double();
 double X(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double F(int* Spins,int** neighbours, int i,int j,double Temp, int sign);
@@ -40,8 +44,8 @@ int main(int argc, char** argv){
     
 //    double Tc=2.0/log(1+sqrt(2))*J; //
     
-    int n_eqSweeps=1000000;
-    int n_measSweeps=2000000;
+    int n_eqSweeps=1000;//1000000;
+    int n_measSweeps=2000;//000000;
   
     cout << "The size of the lattice is "<< SQU << endl;
     cout << "The number of equillibrium sweeps= "<< n_eqSweeps<<endl;
@@ -140,6 +144,11 @@ int main(int argc, char** argv){
     double mean_MA;
     double mean_MB;
     double E,Cv,prob,r;
+    double error_M2=0;
+    double error_M4=0;
+    double* Array_M2=new double[n_measSweeps];
+    double* Array_M4=new double[n_measSweeps];
+
 
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -243,18 +252,23 @@ int main(int argc, char** argv){
                 mean_M  +=M/(n_measSweeps);
                 mean_M2 +=pow(M/N_spins,2)/((n_measSweeps));
                 mean_M4 +=pow(M/N_spins,4)/((n_measSweeps));
+                Array_M2[n_eq]=pow(M/N_spins,2);
+                Array_M4[n_eq]=pow(M/N_spins,4);
                 
                 //Bipartite lattice magnetization
-                mean_MA +=get_magnetization_A(Spins, N_spins)/(n_measSweeps);
-                mean_MB +=get_magnetization_B(Spins, N_spins)/(n_measSweeps);
+//                mean_MA +=get_magnetization_A(Spins, N_spins)/(n_measSweeps);
+//                mean_MB +=get_magnetization_B(Spins, N_spins)/(n_measSweeps);
 
         }
      // This function needs a correction due to the temperature dependence of the effectiva Hamiltonian
      Cv=(mean_E2-pow(mean_E,2))/(N_spins*pow(T,2))+ mean_Cv/(N_spins*pow(T,2));
+     error_M2=jackknife(Array_M2,n_measSweeps);
+     error_M4=jackknife(Array_M4,n_measSweeps);
+        
 
      File_E_M << T << " " << mean_E/N_spins << " "<< Cv << " "<< mean_M/N_spins <<" "<< mean_MA/N_spins<< " "<< mean_MB/N_spins  <<  endl;
         
-     File_Magnettization_powers<<  T << " " << pow(mean_M2,2) << " "<< mean_M4<<" "<< SQU <<endl;
+     File_Magnettization_powers<<  T << " " << pow(mean_M2,2) << " "<< mean_M4<< " "<< error_M2<< " " << error_M4 <<" "<< SQU <<endl;
         
     }
     File_E_M.close();
@@ -603,6 +617,33 @@ double random_double(){
     
     
     return x;
+    
+}
+
+double jackknife(double* array,int size){
+    double av_mean=0;
+    double mean_j=0;
+    double error=0;
+    
+    // Compute the mean value of the array
+    for(int i=0; i<size; i++){
+        av_mean+=array[i]/size;
+    }
+    
+    for(int i=0; i<size; i++){
+        mean_j=0;
+        //Compute the mean value of the array with out the i-th component
+        for(int j=0; j<size; j++){
+            
+            if(j!=i){
+                mean_j+=array[j]/(size-1);
+            }
+        }
+        //Compute the error of the mean as (N-1)\sum_i (mean_i-mean)**2 /N
+        error+=(size-1)*pow(av_mean-mean_j,2)/size;
+    }
+    
+    return sqrt(error);
     
 }
 
