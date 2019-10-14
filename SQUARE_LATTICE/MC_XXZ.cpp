@@ -27,7 +27,7 @@ double H_func(int* Spins,int** neighbours, int i,int j,double Temp,int sign);
 double H_DE(int* Spins,int** neighbours, int i,int j,double Temp,int sign, int pos);
 
 #define J -1.00 // Positive for AFM interactions
-#define Jperp -0.05
+double Jperp =-0.05;
 #define KB 1.
 #define Z 4
 
@@ -37,6 +37,7 @@ int main(int argc, char** argv){
     
     /// Lattice constants ///
     int SQU=atoi(argv[1]);
+    Jperp=atof(argv[2]);
     int L,H;
     L=SQU;
     H=SQU;//
@@ -630,20 +631,34 @@ double jackknife(double* array,int size){
         av_mean+=array[i]/size;
     }
     
-    for(int i=0; i<size; i++){
-        mean_j=0;
-        //Compute the mean value of the array with out the i-th component
-        for(int j=0; j<size; j++){
+     for(int i=0;i<10;i++){
+            counter=0;
+            mean_j=0;
             
-            if(j!=i){
-                mean_j+=array[j]/(size-1);
+            for(int j=0;j<size/10;j++){
+                
+                if(j+i*sub_bin_size<size){
+                    counter++;
+                    mean_j+=array[j+i*sub_bin_size];
+                }
             }
+            error+=(sub_bin_size)*pow(av_mean-(mean_j/counter),2)/size;
         }
-        //Compute the error of the mean as (N-1)\sum_i (mean_i-mean)**2 /N
-        error+=(size-1)*pow(av_mean-mean_j,2)/size;
-    }
-    
-    return sqrt(error);
+        
+    //    for(int i=0; i<size; i++){
+    //        mean_j=0;
+    //        //Compute the mean value of the array with out the i-th component
+    //        for(int j=0; j<size; j++){
+    //
+    //            if(j!=i){
+    //                mean_j+=array[j]/(size-1);
+    //            }
+    //        }
+    //        //Compute the error of the mean as (N-1)\sum_i (mean_i-mean)**2 /N
+    //        error+=(size-1)*pow(av_mean-mean_j,2)/size;
+    //    }
+        
+        return sqrt(error);
     
 }
 
