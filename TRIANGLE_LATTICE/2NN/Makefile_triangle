@@ -1,0 +1,15 @@
+## Pass size of the 2D array with ARGS
+.PHONY:plotea
+
+
+plotea:Energy_magnetization.txt plot.py
+	pythonw plot.py ${ARGS}
+
+Energy_magnetization.txt: triangle.out
+	./triangle.out ${ARGS}
+
+triangle.out:MC_triangle.cpp
+	g++ MC_triangle.cpp -o triangle.out
+
+clean:
+	rm *.txt *.out
