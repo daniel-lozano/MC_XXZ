@@ -30,8 +30,8 @@ void print_matrix(double* Matrix,int N,int L );
 double plaquette_density(int* Spins,int** neighbours,int* Spins_bonds , int N_spins, int L, int H,double T);
 double jackknife(double* array,int size);
 
-#define J -1.
-#define J2 -0.1
+#define J 1// Positive for antiferro
+#define J2 1
 #define KB 1.
 #define Z 6
 
@@ -51,8 +51,8 @@ int main(int argc, char** argv){
     int N_spins=L*H;
     double Tc=2.0/log(1+sqrt(2))*J; //
     
-    int n_eqSweeps=10000;
-    int n_measSweeps=40000;
+    int n_eqSweeps=5000;
+    int n_measSweeps=10000;
     int trials=1;
     cout << "The size of the lattice is "<< SQU << endl;
     cout << "The external field is H_field="<< H_field << endl;
@@ -94,18 +94,25 @@ int main(int argc, char** argv){
             neighbours[i*L+j][5]=((i+1)%H)*L+(j+1)%L; //Downwards diagonal
             
             ///Second NN
+           
             neighbours2[i*L+j][0]=((i+1)%H)*L+(j+1)%L; //Right up
             
-            neighbours2[i*L+j][1]=((i+2)%H)*L+(j-1)%L; //Up
+            neighbours2[i*L+j][1]=((i+2)%H)*L+(j-1+L)%L; //Up
             
             neighbours2[i*L+j][2]=((i+1)%H)*L+(j-2+L)%L; //Left up
             
             neighbours2[i*L+j][3]=((i-1+H)%H)*L+(j-1+L)%L; //Left down
-                
+        
             neighbours2[i*L+j][4]=((i-2+H)%H)*L+(j+1)%L; //Downwards
             
             neighbours2[i*L+j][5]=((i-1+H)%H)*L+(j+2)%L; //Right down
-            
+//            cout<<"Position i="<<i*L+j<<endl;
+//            cout<<((i+1)%H)*L+(j+1)%L<<endl;
+//            cout<<((i+2)%H)*L+(j-1+L)%L<<endl;
+//            cout<<((i+1)%H)*L+(j-2+L)%L<<endl;
+//            cout<<((i-1+H)%H)*L+(j-1+L)%L<<endl;
+//            cout<<((i-2+H)%H)*L+(j+1)%L<<endl;
+//            cout<<((i-1+H)%H)*L+(j+2)%L<<endl;
         }
     }
     
@@ -113,7 +120,7 @@ int main(int argc, char** argv){
     
     int N_temps=50;
     double T_max=5.0;//5
-    double T_min=2.;//2
+    double T_min=0.1;//2
     double* Temp=new double[N_temps];
     
     for(int i=0; i<N_temps;i++){
@@ -124,8 +131,7 @@ int main(int argc, char** argv){
     
     File_E_M.open("Energy_magnetization_L"+ to_string(L)+".txt");
     File_configurations.open("spin_configurations_mattis_L"+ to_string(L)+".txt");
-    File_labels.open("spin_labels_mattis_L"+ to_string(L)+".txt");
-    File_temps.open("spin_T_mattis_L"+ to_string(L)+".txt");
+
     
     cout << "Number of trials " << trials << endl;
     
@@ -162,15 +168,6 @@ int main(int argc, char** argv){
 //        cout<<endl;
         ofstream File_bonds;
 
-        File_bonds.open("Bonds_L"+ to_string(L)+".txt");
-        for(int i=0;i<N_spins;i++){
-            File_bonds<< Random_values[i]*Random_variable[i]<<endl;
-
-        }
-        File_bonds.close();
-
-      
-        
         double mean_E=0;
         double mean_E2=0;
         double mean_M=0;
@@ -212,7 +209,7 @@ int main(int argc, char** argv){
             mean_droplet_density=0;
             
             /// Loop over equillibrium and measure sweeps ///
-            for(int n_eq=0; n_eq<n_eqSweeps+n_measSweeps;n_eq++){
+            for(int n_eq=0; n_eq<n_eqSweeps;n_eq++){
                 
                 sweep(Spins,Random_variable,Random_values, neighbours,neighbours2,T,N_spins );
                 
@@ -236,18 +233,6 @@ int main(int argc, char** argv){
 //                mean_droplet_density+=plaquette_density(Spins,neighbours,Spins_bonds , N_spins,L,  H,T)/(n_measSweeps);
                 
                 /// Saving configurations ///
-                if(n_eq%50==0){
-                    int config=1;//2*(rand()%2)-1;
-                    /// Printing fewer configurations ///
-                    for(int i=0; i< N_spins;i++){
-                        File_configurations<< Spins[i]*config << " ";
-                    }
-                    File_configurations<< endl;
-                    if(T>2.26){File_labels << 0 << endl;}
-                    else{File_labels << 1 << endl;}
-                    File_temps<< T << endl;
-                    
-                }
                     
             }
             
@@ -255,15 +240,26 @@ int main(int argc, char** argv){
             X1=( mean_M2-pow(mean_M,2))/(pow(T,1));
             X3=( mean_M4-4*(mean_M*mean_M3)- 3*pow(mean_M2,2)+12*pow(mean_M,2)*mean_M2-6*pow(mean_M,4))/(pow(T,3));
             error_E=jackknife(Array_Energy,n_measSweeps);
+            
             File_E_M << T << " " << mean_E/N_spins << " "<< mean_M << " "<< Cv<< " "<< mean_droplet_density<< " "<< mean_M2 << " "<< mean_M4 << " "<< X1 << " "<< X3<< " "<< error_E<< endl;
+           
+        }
+        if(1){
+            int config=1;//2*(rand()%2)-1;
+            /// Printing fewer configurations ///
+            for(int i=0; i< N_spins;i++){
+                File_configurations<< Spins[i]*config << " ";
+            }
+            File_configurations<< endl;
            
         }
         File_E_M.close();
         File_configurations.close();
-        File_labels.close();
-        File_temps.close();
+        
         
     }
+    
+    
 
     return 0;
 }
@@ -277,9 +273,6 @@ double get_Energy(int* Spins, int* Bonds,double* Bonds_vals, int** neighbours, i
     /// Energy variable to be computed ///
     double E=0;
     double M=0;
-    double Jij=1;
-    double Jij2=1;
-
     
     /// Loop over sites ///
     for(int i=0; i<N; i++){
@@ -287,11 +280,12 @@ double get_Energy(int* Spins, int* Bonds,double* Bonds_vals, int** neighbours, i
         
         /// Loop over neighbours ///
         for(int j=0;j<Z; j++ ){
-            Jij=J*Bonds_vals[i]*Bonds_vals[neighbours[i][j]];
-            Jij2=J2;
-
-            E+= Jij*Spins[i]*Spins[neighbours[i][j]]*Bonds[i]*Bonds[neighbours[i][j]];
-            E+= Jij2*Spins[i]*Spins[neighbours2[i][j]];
+            if(J!=0){
+                E+= J*Spins[i]*Spins[neighbours[i][j]];
+            }
+            if(J2!=0){
+                E+= J2*Spins[i]*Spins[neighbours2[i][j]];
+            }
         }
     }
 
@@ -311,13 +305,14 @@ void sweep(int* Spins,int* Bonds,double* Bonds_vals, int** neighbours,int** neig
         site=(rand()%N_spins);
         
         DE=0;
-        DE+= 2*H_field*Spins[site];//Energy change
+        DE+= 2*H_field*Spins[site];//Energy change by the field
+        
         for(int j=0; j<Z;j++){
-            Jij=J*Bonds_vals[site]*Bonds_vals[neighbours[site][j]];
-            Jij2=J2;
+           
             
-            DE+= -2*Jij*Spins[site]*Bonds[site]*Spins[neighbours[site][j]]*Bonds[neighbours[site][j]];
-            DE+= -2*Jij2*Spins[site]*Spins[neighbours2[site][j]];
+            DE+= -2*J*Spins[site]*Spins[neighbours[site][j]];
+            
+            DE+= -2*J2*Spins[site]*Spins[neighbours2[site][j]];
             
         }
         /// Defining probability
@@ -335,7 +330,7 @@ double get_magnetization(int* Spins, int* Bonds, int N){
     
     double M=0;
     for(int i=0; i<N; i++){
-        M+=Spins[i]*Bonds[i];
+        M+=Spins[i];
     }
     return M;
     
